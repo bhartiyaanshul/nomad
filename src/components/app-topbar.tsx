@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationsDropdown } from "@/components/shared/notifications-dropdown";
 
 interface AppTopbarProps {
   user: {
@@ -22,6 +23,7 @@ export function AppTopbar({ user }: AppTopbarProps) {
         {/* Breadcrumbs slot — populated by individual routes in later phases */}
       </div>
       <div className="flex items-center gap-2">
+        <NotificationsDropdown />
         <ThemeToggle />
         <Avatar className="size-8">
           {user.image ? <AvatarImage src={user.image} alt="" /> : null}
