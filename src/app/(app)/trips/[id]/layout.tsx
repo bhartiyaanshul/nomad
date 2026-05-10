@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { TripSubNav } from "@/components/trip/trip-sub-nav";
 import { TripActions } from "@/components/trip/trip-actions";
+import { ShareToggle } from "@/components/trip/share-toggle";
 import { formatDateRange, tripDayCount } from "@/lib/format";
 
 interface TripLayoutProps {
@@ -34,6 +35,8 @@ export default async function TripLayout({
       startDate: true,
       endDate: true,
       ownerId: true,
+      isPublic: true,
+      shareSlug: true,
     },
   });
 
@@ -41,6 +44,7 @@ export default async function TripLayout({
 
   const isOwner = trip.ownerId === session.user.id;
   const days = tripDayCount(trip.startDate, trip.endDate);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
   return (
     <div className="bg-background">
@@ -62,7 +66,18 @@ export default async function TripLayout({
                 {days === 1 ? "day" : "days"}
               </p>
             </div>
-            {isOwner ? <TripActions tripId={trip.id} /> : null}
+            {isOwner ? (
+              <div className="flex items-center gap-2">
+                <ShareToggle
+                  tripId={trip.id}
+                  isPublic={trip.isPublic}
+                  initialSlug={trip.shareSlug}
+                  appUrl={appUrl}
+                  tripName={trip.name}
+                />
+                <TripActions tripId={trip.id} />
+              </div>
+            ) : null}
           </div>
         </div>
         <TripSubNav tripId={trip.id} />
