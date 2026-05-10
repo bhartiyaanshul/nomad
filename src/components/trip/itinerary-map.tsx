@@ -250,58 +250,78 @@ export function ItineraryMap({ stops }: ItineraryMapProps) {
  * naturally with the trip length — short trips loop quickly, long trips
  * read like a slow journey.
  */
-function RouteTraveller({ stops }: { stops: PlacedStop[] }) {
-  const markerRef = useRef<L.Marker | null>(null);
-  const segments = useMemo(() => {
-    const out: Array<{
-      from: [number, number];
-      to: [number, number];
-      mode: TransportMode;
-      bearingDeg: number;
-    }> = [];
-    for (let i = 0; i < stops.length - 1; i++) {
-      const a = stops[i];
-      const b = stops[i + 1];
-      const mode = inferTransportMode(
+interface Segment {
+  from: [number, number];
+  to: [number, number];
+  mode: TransportMode;
+  bearingDeg: number;
+}
+
+function buildSegments(stops: PlacedStop[]): Segment[] {
+  const out: Segment[] = [];
+  for (let i = 0; i < stops.length - 1; i++) {
+    const a = stops[i];
+    const b = stops[i + 1];
+    out.push({
+      from: [a.latitude, a.longitude],
+      to: [b.latitude, b.longitude],
+      mode: inferTransportMode(
         a.transportMode,
         a.latitude,
         a.longitude,
         b.latitude,
         b.longitude,
-      );
-      out.push({
-        from: [a.latitude, a.longitude],
-        to: [b.latitude, b.longitude],
-        mode,
-        bearingDeg: bearing(a.latitude, a.longitude, b.latitude, b.longitude),
-      });
-    }
-    return out;
-  }, [stops]);
+      ),
+      bearingDeg: bearing(a.latitude, a.longitude, b.latitude, b.longitude),
+    });
+  }
+  return out;
+}
 
-  // Track which segment is "active" so the icon (mode + rotation) can
-  // re-render only when crossing a boundary, not every frame.
+function RouteTraveller({ stops }: { stops: PlacedStop[] }) {
+  const markerRef = useRef<L.Marker | null>(null);
+  const segments = useMemo(() => buildSegments(stops), [stops]);
+
+  // Hold the latest segments in a ref so the RAF loop always reads fresh
+  // data without rebuilding the closure (which avoids the dynamic-deps
+  // array problem and stale-segment crashes when stops change).
+  const segmentsRef = useRef<Segment[]>(segments);
+  useEffect(() => {
+    segmentsRef.current = segments;
+  }, [segments]);
+
+  // Track which segment is "active" so the icon (mode + rotation) re-renders
+  // only when crossing a boundary, not every frame.
   const [activeSegment, setActiveSegment] = useState(0);
 
-  // requestAnimationFrame loop — drives both the marker position and the
-  // active-segment state. Position updates bypass React via setLatLng.
+  // Single mount-time RAF loop. It reads the current segments via the ref
+  // and is robust to mid-flight changes (added/removed/reordered stops).
   useEffect(() => {
-    if (segments.length === 0) return;
     const PER_SEGMENT = 5_000; // ms travelling
     const PAUSE = 600; // ms paused at each arrival
-    const PER_CYCLE = PER_SEGMENT + PAUSE;
-    const TOTAL = PER_CYCLE * segments.length;
-
     let raf = 0;
     const start = performance.now();
     let lastSeg = -1;
 
     function tick(now: number) {
-      const elapsed = (now - start) % TOTAL;
-      const segIdx = Math.floor(elapsed / PER_CYCLE);
+      const segs = segmentsRef.current;
+      if (!segs || segs.length === 0) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      const PER_CYCLE = PER_SEGMENT + PAUSE;
+      const TOTAL = PER_CYCLE * segs.length;
+      const elapsed = TOTAL > 0 ? (now - start) % TOTAL : 0;
+      const segIdx = Math.min(
+        segs.length - 1,
+        Math.max(0, Math.floor(elapsed / PER_CYCLE)),
+      );
+      const seg = segs[segIdx];
+      if (!seg) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
       const within = elapsed - segIdx * PER_CYCLE;
-      const seg = segments[segIdx];
-      // Travel from 0→1 over PER_SEGMENT then hold at 1 for PAUSE.
       const t = within < PER_SEGMENT ? within / PER_SEGMENT : 1;
       const lat = seg.from[0] + (seg.to[0] - seg.from[0]) * t;
       const lng = seg.from[1] + (seg.to[1] - seg.from[1]) * t;
@@ -315,14 +335,18 @@ function RouteTraveller({ stops }: { stops: PlacedStop[] }) {
     }
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [segments.length, ...segments.map((s) => s.from.join(",") + s.to.join(","))]);
+  }, []);
 
+  // If activeSegment is out of range (e.g., stops shrank), fall back to
+  // the first segment for the icon. The render guard outside ensures we
+  // only mount when there's at least one segment.
   const seg = segments[activeSegment] ?? segments[0];
   const icon = useMemo(
-    () => buildTransportIcon(seg.mode, seg.bearingDeg),
-    [seg.mode, seg.bearingDeg],
+    () => (seg ? buildTransportIcon(seg.mode, seg.bearingDeg) : null),
+    [seg],
   );
+
+  if (!seg || !icon) return null;
 
   return (
     <Marker
