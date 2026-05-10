@@ -34,6 +34,7 @@ import type { ActionResult } from "@/server/actions/result";
 
 import type { BuilderStop } from "./types";
 import { ActivitiesPanel } from "./activities-panel";
+import { CompromiseSheet } from "./compromise-sheet";
 
 interface StopEditorProps {
   stop: BuilderStop;
@@ -269,19 +270,26 @@ export function StopEditor({ stop, totalDays, isLast, currency }: StopEditorProp
         ) : null}
 
         <div className="flex items-center justify-between border-t border-border/60 pt-5">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                disabled={deletePending}
-                className="text-destructive gap-2"
-              >
-                <Trash2 className="size-4" />
-                Remove this stop
-              </Button>
-            </AlertDialogTrigger>
+          <div className="flex items-center gap-2">
+            <CompromiseSheet
+              stopId={stop.id}
+              city={stop.city}
+              country={stop.country}
+              currency={currency}
+            />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={deletePending}
+                  className="text-destructive gap-2"
+                >
+                  <Trash2 className="size-4" />
+                  Remove
+                </Button>
+              </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle className="font-display tracking-tight">
@@ -310,6 +318,7 @@ export function StopEditor({ stop, totalDays, isLast, currency }: StopEditorProp
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          </div>
           <SubmitButton pendingLabel="Saving">Save changes</SubmitButton>
         </div>
       </form>
