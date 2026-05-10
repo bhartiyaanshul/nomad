@@ -146,8 +146,8 @@ export function AIGenerateDialog({
     setFieldErrors(undefined);
     setStage("thinking");
 
-    const stageWalker = setTimeout(() => setStage("mapping"), 8_000);
-    const stageWalker2 = setTimeout(() => setStage("saving"), 24_000);
+    const stageWalker = setTimeout(() => setStage("mapping"), 20_000);
+    const stageWalker2 = setTimeout(() => setStage("saving"), 60_000);
 
     try {
       const res = await fetch("/api/ai/itinerary", {
@@ -460,9 +460,9 @@ export function AIGenerateDialog({
             </div>
 
             <p className="text-muted-foreground text-xs leading-relaxed">
-              Generation usually takes 10 to 30 seconds depending on the
-              model and the number of stops. Your inputs are kept if anything
-              fails.
+              Generation usually takes 30 seconds to a few minutes depending on
+              your hardware and the number of stops. Your inputs are kept if
+              anything fails.
             </p>
           </form>
 
@@ -491,7 +491,7 @@ function ProgressView({ stage }: { stage: Exclude<Stage, "idle"> }) {
           {STAGE_LABELS[stage]}
         </p>
         <p className="text-muted-foreground mt-1 text-sm">
-          This usually takes 10 to 30 seconds.
+          This can take up to a few minutes on local models.
         </p>
       </div>
       <ol className="flex flex-col gap-2">

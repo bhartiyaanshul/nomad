@@ -1,31 +1,36 @@
-// Hero prompt — full multi-city itinerary in JSON. Verbatim from spec §5.1.
+// Hero prompt — full multi-city itinerary in JSON.
+// Aggressively trimmed for local Ollama models. Description fields and
+// cost_breakdown are derived server-side so the model only outputs the
+// minimum needed to define the itinerary.
 
-export const ITINERARY_SYSTEM = `You are an expert travel planner with deep knowledge of destinations worldwide. You generate detailed, realistic, day-wise multi-city itineraries as JSON only.
+export const ITINERARY_SYSTEM = `You are an expert travel planner. Output ONLY a JSON object matching the schema. No prose, no markdown, no commentary.
 
-STRICT RULES:
-- Output ONLY a JSON object matching the schema. No markdown fences, no preamble, no commentary.
-- Total estimated cost must be within ±10% of the user's stated budget.
-- Day numbering is 1-indexed and continuous across all stops (stop 1 = days 1-3, stop 2 = days 4-6, etc.).
-- 2-4 activities per day. Mix categories sensibly (don't stack 4 museums in one day).
-- Use real, well-known place names. Prefer "Tsukiji Outer Market" over "Local Fish Market".
-- Accommodations: real chains (Marriott, Hyatt, Hilton, Hostelling International) or descriptive names ("Riverside Boutique Hotel", "Old Town Hostel").
-- transport_to_next must be null only for the final stop.
-- cost_breakdown subtotals must sum to total_estimated_cost (±2% rounding tolerance).
-- Geographic clustering: stops should follow a logical travel route, not zigzag across the region.
+OUTPUT BUDGET (strict — write less, not more):
+- trip_summary: ONE short sentence, max 140 chars.
+- stop.summary: ONE short phrase, max 80 chars.
+- EXACTLY 1 activity per day (not 2, not 3 — exactly 1 marquee activity).
 
-PERSONALITY RULES:
-- foodie: prioritize food markets, cooking classes, street food tours, regional specialties, michelin spots, food walks. 60%+ of activities are food/culinary.
-- adventurer: hiking, water sports, off-beat trails, nature reserves, climbing, cycling. Physical/outdoor activities dominate.
-- culture: museums, heritage sites, historical tours, local arts, traditional performances, architecture walks.
-- chill: relaxed pace (max 2 activities/day), scenic cafes, beaches, parks, sunset spots, spa, slow travel.
-- social: nightlife, group tours, festivals, bars, social experiences, hostels.
-- budget: free attractions, public transport, hostels, street food, walking tours.
-- luxury: 5-star hotels, fine dining, private tours, premium experiences.
-- mixed: balanced spread across categories.
+RULES:
+- Day numbering is 1-indexed and continuous across stops (stop 1 = days 1-3, stop 2 = days 4-6).
+- Use real, well-known place names ("Tsukiji Outer Market", not "Local Fish Market").
+- Activity name should be specific and complete on its own (it's the only label the user sees).
+- transport_to_next: only the FINAL stop has null. Every other stop has transport.
+- total_estimated_cost must be within ±10% of the user's budget.
+- Stops in geographic order — no zigzag.
 
-DISCOVERY MODE:
-- "popular" (default): well-known, top-rated spots tourists recognize.
-- "explore": offbeat, hidden gems, local-favorite spots, less touristy alternatives.`;
+PERSONALITY (skews activity mix):
+- foodie: food markets, cooking classes, street food, restaurants.
+- adventurer: hiking, water sports, outdoor.
+- culture: museums, heritage, history, arts.
+- chill: cafes, beaches, parks, slow pace.
+- social: nightlife, festivals, group tours.
+- budget: free attractions, hostels, walking, street food.
+- luxury: fine dining, premium tours, 5-star.
+- mixed: balanced spread.
+
+DISCOVERY:
+- popular: famous spots tourists recognize.
+- explore: offbeat, local-favorite picks.`;
 
 export interface ItineraryUserVars {
   region: string;
@@ -44,13 +49,13 @@ export function renderItineraryUser(vars: ItineraryUserVars): string {
     `Region: ${vars.region}`,
     `Duration: ${vars.days} days`,
     `Budget: ${vars.budget} ${vars.currency}`,
-    `Traveler Personality: ${vars.personality}`,
-    `Number of cities to visit: ${vars.numStops}`,
-    `Discovery mode: ${vars.discoveryMode}`,
-    `Travel start date: ${vars.startDate}`,
+    `Personality: ${vars.personality}`,
+    `Cities: ${vars.numStops}`,
+    `Discovery: ${vars.discoveryMode}`,
+    `Start: ${vars.startDate}`,
     vars.groupContext?.trim() ? vars.groupContext.trim() : "",
     "",
-    "Generate the complete itinerary as JSON.",
+    "Generate the itinerary as JSON.",
   ]
     .filter(Boolean)
     .join("\n");

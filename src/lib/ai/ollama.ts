@@ -1,7 +1,8 @@
 // Ollama client. Schema-constrained JSON output via the `format` field.
-// 60s timeout, one retry on JSON.parse failure (smaller models occasionally
-// emit a stray non-JSON token), structured errors so the API route can
-// return a friendly message.
+// Uses streaming (stream:true) so headers arrive immediately — this
+// sidesteps Node undici's 5-minute headersTimeout, which would otherwise
+// kill long generations on local 7B+ models. Chunks are concatenated and
+// parsed as one JSON object at the end.
 
 const DEFAULT_BASE_URL =
   process.env.OLLAMA_BASE_URL ?? "http://localhost:11434";
@@ -43,7 +44,11 @@ export interface GenerateArgs<T> {
   model?: string;
   /** Override OLLAMA_BASE_URL env */
   baseUrl?: string;
-  /** Override default 60s timeout */
+  /**
+   * Wall-clock timeout for the entire generation. Default 5 min.
+   * Enforced by an inactivity check on the stream — if no chunk arrives
+   * for `timeoutMs`, we abort.
+   */
   timeoutMs?: number;
   /** Validate the parsed JSON; if it throws, we retry once */
   validate?: (raw: unknown) => T;
@@ -52,13 +57,16 @@ export interface GenerateArgs<T> {
 export async function generate<T = unknown>(args: GenerateArgs<T>): Promise<T> {
   const baseUrl = (args.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
   const model = args.model ?? DEFAULT_MODEL;
-  const timeoutMs = args.timeoutMs ?? 60_000;
+  const timeoutMs = args.timeoutMs ?? 300_000;
   const temperature = args.temperature ?? 0.7;
 
   const body = {
     model,
-    stream: false,
+    stream: true,
     format: args.schema,
+    // keep_alive holds the model in VRAM between calls so the second
+    // generation doesn't pay the 10-30s cold-load cost again.
+    keep_alive: "30m",
     options: { temperature },
     messages: [
       { role: "system", content: args.system },
@@ -68,7 +76,16 @@ export async function generate<T = unknown>(args: GenerateArgs<T>): Promise<T> {
 
   const attempt = async (): Promise<T> => {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    // Inactivity timer — reset on every chunk. Abort only if the stream
+    // genuinely stalls. A long generation that's still emitting tokens
+    // keeps the timer alive.
+    let inactivityTimer: ReturnType<typeof setTimeout>;
+    const resetIdle = () => {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => ctrl.abort(), timeoutMs);
+    };
+    resetIdle();
+
     try {
       const res = await fetch(`${baseUrl}/api/chat`, {
         method: "POST",
@@ -84,23 +101,62 @@ export async function generate<T = unknown>(args: GenerateArgs<T>): Promise<T> {
         );
       }
 
-      const json = (await res.json()) as { message?: { content?: string } };
-      const content = json?.message?.content?.trim();
-      if (!content) {
-        throw new OllamaError("Ollama returned an empty response");
+      if (!res.body) {
+        throw new OllamaError("Ollama returned no response body");
       }
+
+      // Read NDJSON chunks. Each line is `{message:{content:"..."},done:bool}`.
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let content = "";
+      let done = false;
+
+      while (!done) {
+        const { value, done: streamDone } = await reader.read();
+        if (streamDone) break;
+        resetIdle();
+        buffer += decoder.decode(value, { stream: true });
+
+        // Split on newlines; keep trailing partial line in buffer.
+        let nl: number;
+        while ((nl = buffer.indexOf("\n")) >= 0) {
+          const line = buffer.slice(0, nl).trim();
+          buffer = buffer.slice(nl + 1);
+          if (!line) continue;
+          try {
+            const evt = JSON.parse(line) as {
+              message?: { content?: string };
+              done?: boolean;
+              error?: string;
+            };
+            if (evt.error) throw new OllamaError(`Ollama: ${evt.error}`);
+            if (evt.message?.content) content += evt.message.content;
+            if (evt.done) done = true;
+          } catch (err) {
+            if (err instanceof OllamaError) throw err;
+            // Ignore malformed line — keep streaming.
+          }
+        }
+      }
+
+      const trimmed = content.trim();
+      if (!trimmed) throw new OllamaError("Ollama returned an empty response");
 
       let parsed: unknown;
       try {
-        parsed = JSON.parse(content);
+        parsed = JSON.parse(trimmed);
       } catch (err) {
-        throw new OllamaError(`Could not parse Ollama JSON: ${stripJSON(content)}`, err);
+        throw new OllamaError(
+          `Could not parse Ollama JSON: ${stripJSON(trimmed)}`,
+          err,
+        );
       }
 
       if (args.validate) return args.validate(parsed);
       return parsed as T;
     } finally {
-      clearTimeout(timer);
+      clearTimeout(inactivityTimer!);
     }
   };
 
@@ -108,7 +164,7 @@ export async function generate<T = unknown>(args: GenerateArgs<T>): Promise<T> {
     return await attempt();
   } catch (err) {
     if (isFetchAbort(err)) {
-      throw new OllamaError("Ollama request timed out", err);
+      throw new OllamaError("Ollama generation stalled (no tokens)", err);
     }
     if (isFetchNetwork(err)) {
       throw new OllamaUnavailableError(err);

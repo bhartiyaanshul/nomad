@@ -1,7 +1,14 @@
 import { z } from "zod";
 
-// Zod equivalent of the Ollama JSON schema. We validate the model output
-// against this before persisting.
+// Aggressively trimmed schema for fast local-model generation.
+// What was dropped (and where it comes from instead):
+// - personality, currency, total_days        → echoed from user input
+// - personality_fit per activity             → unused in UI
+// - description per activity                 → derived from name + category
+// - estimated_duration_hours per activity    → defaulted by category
+// - daily_food_estimate per stop             → derived from budget/days
+// - cost_breakdown                           → computed from activities + accom
+
 export const itineraryActivitySchema = z.object({
   name: z.string().min(1),
   day: z.number().int().min(1),
@@ -14,10 +21,7 @@ export const itineraryActivitySchema = z.object({
     "shopping",
     "nightlife",
   ]),
-  estimated_duration_hours: z.number().nonnegative().optional(),
   estimated_cost: z.number().nonnegative(),
-  description: z.string(),
-  personality_fit: z.string().optional(),
 });
 
 export const itineraryAccommodationSchema = z.object({
@@ -50,23 +54,12 @@ export const itineraryStopSchema = z.object({
   departure_day: z.number().int().min(1),
   accommodation: itineraryAccommodationSchema,
   transport_to_next: itineraryTransportSchema.optional(),
-  daily_food_estimate: z.number().nonnegative(),
   activities: z.array(itineraryActivitySchema),
 });
 
 export const itinerarySchema = z.object({
   trip_summary: z.string(),
-  personality: z.string(),
-  currency: z.string(),
-  total_days: z.number().int().min(1),
   total_estimated_cost: z.number().nonnegative(),
-  cost_breakdown: z.object({
-    accommodation: z.number().nonnegative(),
-    food: z.number().nonnegative(),
-    activities: z.number().nonnegative(),
-    transport: z.number().nonnegative(),
-    miscellaneous: z.number().nonnegative(),
-  }),
   stops: z.array(itineraryStopSchema).min(1),
 });
 
@@ -75,41 +68,13 @@ export type ItineraryStop = z.infer<typeof itineraryStopSchema>;
 export type ItineraryActivity = z.infer<typeof itineraryActivitySchema>;
 
 // JSON Schema (draft-07 subset) passed to Ollama's `format` field.
-// Mirrors the Zod schema exactly. Keep them in sync.
+// Mirrors the Zod schema. Keep them in sync.
 export const itineraryJsonSchema: Record<string, unknown> = {
   type: "object",
-  required: [
-    "trip_summary",
-    "personality",
-    "currency",
-    "total_days",
-    "total_estimated_cost",
-    "cost_breakdown",
-    "stops",
-  ],
+  required: ["trip_summary", "total_estimated_cost", "stops"],
   properties: {
     trip_summary: { type: "string" },
-    personality: { type: "string" },
-    currency: { type: "string" },
-    total_days: { type: "integer", minimum: 1 },
     total_estimated_cost: { type: "number", minimum: 0 },
-    cost_breakdown: {
-      type: "object",
-      required: [
-        "accommodation",
-        "food",
-        "activities",
-        "transport",
-        "miscellaneous",
-      ],
-      properties: {
-        accommodation: { type: "number", minimum: 0 },
-        food: { type: "number", minimum: 0 },
-        activities: { type: "number", minimum: 0 },
-        transport: { type: "number", minimum: 0 },
-        miscellaneous: { type: "number", minimum: 0 },
-      },
-    },
     stops: {
       type: "array",
       minItems: 1,
@@ -123,7 +88,6 @@ export const itineraryJsonSchema: Record<string, unknown> = {
           "summary",
           "accommodation",
           "activities",
-          "daily_food_estimate",
         ],
         properties: {
           city: { type: "string" },
@@ -162,18 +126,11 @@ export const itineraryJsonSchema: Record<string, unknown> = {
               duration_hours: { type: "number", minimum: 0 },
             },
           },
-          daily_food_estimate: { type: "number", minimum: 0 },
           activities: {
             type: "array",
             items: {
               type: "object",
-              required: [
-                "name",
-                "day",
-                "category",
-                "estimated_cost",
-                "description",
-              ],
+              required: ["name", "day", "category", "estimated_cost"],
               properties: {
                 name: { type: "string" },
                 day: { type: "integer", minimum: 1 },
@@ -189,10 +146,7 @@ export const itineraryJsonSchema: Record<string, unknown> = {
                     "nightlife",
                   ],
                 },
-                estimated_duration_hours: { type: "number", minimum: 0 },
                 estimated_cost: { type: "number", minimum: 0 },
-                description: { type: "string" },
-                personality_fit: { type: "string" },
               },
             },
           },

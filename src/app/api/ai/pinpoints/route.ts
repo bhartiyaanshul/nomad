@@ -17,7 +17,7 @@ import {
 } from "@/lib/ai/schemas/pinpoints";
 
 export const runtime = "nodejs";
-export const maxDuration = 90;
+export const maxDuration = 180;
 
 const personalityEnum = z.enum([
   "foodie",
@@ -73,6 +73,7 @@ export async function POST(req: Request) {
       user: userPrompt,
       schema: pinpointsJsonSchema,
       temperature: 0.5,
+      timeoutMs: 60_000,
       validate: (raw) => pinpointsSchema.parse(raw),
     });
     return NextResponse.json(result);

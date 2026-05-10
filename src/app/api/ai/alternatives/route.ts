@@ -18,7 +18,7 @@ import {
 } from "@/lib/ai/schemas/alternatives";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 180;
 
 const requestSchema = z.object({
   stopId: z.string().min(1),
@@ -115,6 +115,7 @@ export async function POST(req: Request) {
       user: userPrompt,
       schema: alternativesJsonSchema,
       temperature: 0.4,
+      timeoutMs: 60_000,
       validate: (raw) => alternativesSchema.parse(raw),
     });
     return NextResponse.json({ alternatives: result.alternatives });

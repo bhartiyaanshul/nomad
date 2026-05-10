@@ -23,7 +23,7 @@ import { seedDefaultTodosFor } from "@/server/actions/todos";
 
 export const runtime = "nodejs";
 // AI calls take many seconds; bump default timeout.
-export const maxDuration = 180;
+export const maxDuration = 300;
 
 const personalityEnum = z.enum([
   "foodie",
@@ -92,8 +92,8 @@ export async function POST(req: Request) {
       system: ITINERARY_SYSTEM,
       user: userPrompt,
       schema: itineraryJsonSchema,
-      temperature: 0.7,
-      timeoutMs: 150_000,
+      temperature: 0.5,
+      timeoutMs: 60_000,
       validate: (raw) => itinerarySchema.parse(raw),
     });
   } catch (err) {
@@ -132,7 +132,7 @@ export async function POST(req: Request) {
 
   // Geocode each stop sequentially (rate-limited inside the wrapper).
   const startDate = new Date(parsed.data.startDate);
-  const endDate = addDays(startDate, Math.max(1, itinerary.total_days) - 1);
+  const endDate = addDays(startDate, Math.max(1, parsed.data.days) - 1);
 
   const stopsWithCoords = await Promise.all(
     itinerary.stops.map(async (s) => {
@@ -140,6 +140,11 @@ export async function POST(req: Request) {
       return { ...s, coords };
     }),
   );
+
+  // Derive fields the model no longer emits (kept off the prompt for speed).
+  // Food: assume ~25% of total budget split evenly across days, by stop length.
+  const totalDays = Math.max(1, parsed.data.days);
+  const dailyFoodEstimate = (parsed.data.budget * 0.25) / totalDays;
 
   // Persist: trip + stops + activities in one transaction.
   const tripName =
@@ -182,7 +187,7 @@ export async function POST(req: Request) {
           accomName: s.accommodation.name,
           accomType: s.accommodation.type,
           accomCostPerNight: s.accommodation.cost_per_night,
-          dailyFoodEstimate: s.daily_food_estimate,
+          dailyFoodEstimate,
           transportMode: transport?.mode ?? null,
           transportCost: transport?.cost ?? null,
           transportHours: transport?.duration_hours ?? null,
@@ -194,12 +199,14 @@ export async function POST(req: Request) {
           data: s.activities.map((a) => ({
             stopId: stop.id,
             name: a.name,
-            description: a.description,
+            // Description isn't in the AI output — we keep the column but
+            // leave it blank so the UI shows just the activity name. The
+            // user can edit it later.
+            description: "",
             day: a.day,
             category: a.category,
-            estimatedDurationHours: a.estimated_duration_hours ?? null,
+            estimatedDurationHours: defaultDurationFor(a.category),
             estimatedCost: a.estimated_cost,
-            personalityFit: a.personality_fit ?? null,
           })),
         });
       }
@@ -247,5 +254,28 @@ export async function POST(req: Request) {
     totalEstimatedCost: itinerary.total_estimated_cost,
     stopsCreated: stopsWithCoords.length,
   });
+}
+
+// Reasonable default activity durations by category, used when the AI
+// output omits estimated_duration_hours (we drop it from the schema to
+// shrink the response).
+function defaultDurationFor(category: string): number {
+  switch (category) {
+    case "food":
+      return 1.5;
+    case "nightlife":
+      return 3;
+    case "adventure":
+      return 4;
+    case "sightseeing":
+    case "culture":
+      return 2;
+    case "shopping":
+      return 2;
+    case "relaxation":
+      return 2;
+    default:
+      return 2;
+  }
 }
 
