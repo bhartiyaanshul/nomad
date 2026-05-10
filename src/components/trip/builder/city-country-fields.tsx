@@ -1,35 +1,36 @@
 "use client";
 
 import { forwardRef, useEffect, useRef, useState } from "react";
-import { MapPin } from "lucide-react";
+import { Loader2, MapPin } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-interface SeedCity {
-  name: string;
-  country: string;
-}
-
 const MAX_RESULTS = 6;
+const SEARCH_DEBOUNCE_MS = 250;
 
-let cachedCities: SeedCity[] | null = null;
+// ─── Country data (loaded once, cached) ──────────────────────────────
 let cachedCountries: string[] | null = null;
-
-async function loadCities(): Promise<SeedCity[]> {
-  if (cachedCities) return cachedCities;
+async function loadCountries(): Promise<string[]> {
+  if (cachedCountries) return cachedCountries;
   try {
-    const res = await fetch("/seed/cities.json", { cache: "force-cache" });
+    const res = await fetch("/seed/countries.json", { cache: "force-cache" });
     if (!res.ok) return [];
-    const data = (await res.json()) as SeedCity[];
-    cachedCities = data;
-    cachedCountries = Array.from(new Set(data.map((c) => c.country))).sort();
+    const data = (await res.json()) as string[];
+    cachedCountries = data;
     return data;
   } catch {
     return [];
   }
 }
 
+interface CityHit {
+  name: string;
+  country: string;
+  region: string | null;
+}
+
+// ─── CityCombobox ────────────────────────────────────────────────────
 interface CityComboboxProps {
   value: string;
   onValueChange: (value: string) => void;
@@ -41,11 +42,10 @@ interface CityComboboxProps {
 }
 
 /**
- * City input with a popover-style dropdown that filters from
- * public/seed/cities.json. Each row shows "City · Country" so the same
- * city name in different countries (e.g., Naples) is disambiguated.
- * Selecting a row fires onCityPicked with both the city name and the
- * country, so the parent can update the country input alongside.
+ * City input with a popover-style dropdown backed by a worldwide search
+ * (Nominatim, server-side, with LRU cache). Each row shows
+ * `City · Region · Country`, so the same city name in different countries
+ * (e.g., Naples in Italy and the US) surfaces as separate options.
  */
 export function CityCombobox({
   value,
@@ -56,16 +56,41 @@ export function CityCombobox({
   required,
   placeholder = "Hanoi",
 }: CityComboboxProps) {
-  const [cities, setCities] = useState<SeedCity[]>([]);
   const [open, setOpen] = useState(false);
+  const [results, setResults] = useState<CityHit[]>([]);
+  const [loading, setLoading] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
+  const seqRef = useRef(0);
 
-  useEffect(() => {
-    loadCities().then(setCities);
-  }, []);
   useOutsideClick(wrap, () => setOpen(false));
 
-  const matches = filterCities(cities, value, MAX_RESULTS);
+  // Debounced fetch as the user types.
+  useEffect(() => {
+    if (!open) return;
+    const seq = ++seqRef.current;
+    const t = setTimeout(() => {
+      const url = new URL("/api/cities/search", window.location.origin);
+      url.searchParams.set("worldwide", "1");
+      url.searchParams.set("limit", String(MAX_RESULTS));
+      if (value.trim()) url.searchParams.set("q", value.trim());
+      setLoading(true);
+      fetch(url, { signal: AbortSignal.timeout(8_000) })
+        .then((r) => r.json())
+        .then((data: { items?: CityHit[] }) => {
+          if (seq !== seqRef.current) return; // superseded
+          setResults(data.items ?? []);
+        })
+        .catch(() => {
+          if (seq !== seqRef.current) return;
+          setResults([]);
+        })
+        .finally(() => {
+          if (seq !== seqRef.current) return;
+          setLoading(false);
+        });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [value, open]);
 
   return (
     <div className="relative" ref={wrap}>
@@ -85,19 +110,30 @@ export function CityCombobox({
           if (e.key === "Escape") setOpen(false);
         }}
       />
-      <Dropdown open={open && matches.length > 0} ariaLabel="Matching cities">
-        {matches.map((c) => (
+      {loading ? (
+        <Loader2 className="text-muted-foreground absolute top-1/2 right-2.5 size-3.5 -translate-y-1/2 animate-spin" />
+      ) : null}
+      <Dropdown open={open && (results.length > 0 || loading)} ariaLabel="Matching cities">
+        {loading && results.length === 0 ? (
+          <li className="text-muted-foreground px-3 py-2 text-xs">
+            Searching worldwide…
+          </li>
+        ) : null}
+        {results.map((c) => (
           <DropdownButton
-            key={`${c.name}|${c.country}`}
+            key={`${c.name}|${c.country}|${c.region ?? ""}`}
             onSelect={() => {
               onValueChange(c.name);
               onCityPicked?.({ city: c.name, country: c.country });
               setOpen(false);
             }}
           >
-            <MapPin className="text-muted-foreground size-3.5" />
-            <span className="text-foreground font-medium">{c.name}</span>
-            <span className="text-muted-foreground ml-auto text-xs">
+            <MapPin className="text-muted-foreground size-3.5 shrink-0" />
+            <span className="text-foreground truncate font-medium">
+              {c.name}
+            </span>
+            <span className="text-muted-foreground ml-auto truncate text-xs">
+              {c.region ? `${c.region} · ` : ""}
               {c.country}
             </span>
           </DropdownButton>
@@ -107,6 +143,7 @@ export function CityCombobox({
   );
 }
 
+// ─── CountryCombobox ─────────────────────────────────────────────────
 interface CountryComboboxProps {
   value: string;
   onValueChange: (value: string) => void;
@@ -129,7 +166,7 @@ export function CountryCombobox({
   const wrap = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    loadCities().then(() => setCountries(cachedCountries ?? []));
+    loadCountries().then(setCountries);
   }, []);
   useOutsideClick(wrap, () => setOpen(false));
 
@@ -165,32 +202,13 @@ export function CountryCombobox({
               setOpen(false);
             }}
           >
-            <MapPin className="text-muted-foreground size-3.5" />
+            <MapPin className="text-muted-foreground size-3.5 shrink-0" />
             <span className="text-foreground">{c}</span>
           </DropdownButton>
         ))}
       </Dropdown>
     </div>
   );
-}
-
-function filterCities(
-  cities: SeedCity[],
-  query: string,
-  limit: number,
-): SeedCity[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return cities.slice(0, limit);
-  const prefix: SeedCity[] = [];
-  const rest: SeedCity[] = [];
-  for (const c of cities) {
-    const nameLower = c.name.toLowerCase();
-    if (nameLower.startsWith(q)) prefix.push(c);
-    else if (nameLower.includes(q) || c.country.toLowerCase().includes(q)) {
-      rest.push(c);
-    }
-  }
-  return [...prefix, ...rest].slice(0, limit);
 }
 
 function filterCountries(
@@ -210,6 +228,7 @@ function filterCountries(
   return [...prefix, ...rest].slice(0, limit);
 }
 
+// ─── Shared UI primitives ────────────────────────────────────────────
 function useOutsideClick(
   ref: React.RefObject<HTMLElement | null>,
   onOutside: () => void,
@@ -240,7 +259,7 @@ function Dropdown({
       role="listbox"
       aria-label={ariaLabel}
       className={cn(
-        "border-border bg-popover absolute top-full right-0 left-0 z-50 mt-1 overflow-hidden rounded-md border shadow-md",
+        "border-border bg-popover absolute top-full right-0 left-0 z-50 mt-1 max-h-72 overflow-y-auto rounded-md border shadow-md",
       )}
     >
       {children}
@@ -262,8 +281,7 @@ const DropdownButton = forwardRef<
         type="button"
         role="option"
         aria-selected={false}
-        // preventDefault on mousedown so the input doesn't blur before the
-        // click registers.
+        // mousedown preventDefault so the input doesn't blur before click.
         onMouseDown={(e) => e.preventDefault()}
         onClick={onSelect}
         className="hover:bg-accent focus:bg-accent flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition outline-none"

@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
+import L from "leaflet";
 import {
-  CircleMarker,
   MapContainer,
+  Marker,
   Polyline,
   Popup,
   TileLayer,
+  useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -24,6 +26,27 @@ interface MapStopShape {
 
 interface ItineraryMapProps {
   stops: MapStopShape[];
+}
+
+/**
+ * Build a Leaflet DivIcon for a numbered teardrop pin. The pin uses the
+ * theme's primary colour and renders the index inside; the inner span
+ * counter-rotates so the number stays upright while the outer wrapper has
+ * the classic 45° tilt.
+ */
+function buildPinIcon(index: number): L.DivIcon {
+  const html = `
+    <div class="traveloop-pin">
+      <span class="traveloop-pin-number">${index}</span>
+    </div>
+  `;
+  return L.divIcon({
+    html,
+    className: "",
+    iconSize: [32, 40],
+    iconAnchor: [16, 36],
+    popupAnchor: [0, -32],
+  });
 }
 
 export function ItineraryMap({ stops }: ItineraryMapProps) {
@@ -49,20 +72,13 @@ export function ItineraryMap({ stops }: ItineraryMapProps) {
     );
   }
 
-  const center: [number, number] = [
-    placed.reduce((sum, s) => sum + s.latitude, 0) / placed.length,
-    placed.reduce((sum, s) => sum + s.longitude, 0) / placed.length,
-  ];
-
-  // Auto-fit bounds via center + simple zoom heuristic.
+  // Compute bounds for fitBounds (better than a heuristic zoom).
   const lats = placed.map((s) => s.latitude);
   const lons = placed.map((s) => s.longitude);
-  const span = Math.max(
-    Math.max(...lats) - Math.min(...lats),
-    Math.max(...lons) - Math.min(...lons),
-  );
-  const zoom =
-    span > 30 ? 3 : span > 15 ? 4 : span > 7 ? 5 : span > 3 ? 6 : span > 1 ? 8 : 10;
+  const bounds: [[number, number], [number, number]] = [
+    [Math.min(...lats), Math.min(...lons)],
+    [Math.max(...lats), Math.max(...lons)],
+  ];
 
   const polyline: [number, number][] = placed.map((s) => [
     s.latitude,
@@ -70,37 +86,41 @@ export function ItineraryMap({ stops }: ItineraryMapProps) {
   ]);
 
   return (
-    <div className="border-border/70 overflow-hidden rounded-md border">
+    <div className="border-border/70 relative overflow-hidden rounded-md border">
       <MapContainer
-        center={center}
-        zoom={zoom}
+        bounds={bounds}
+        boundsOptions={{ padding: [40, 40] }}
         scrollWheelZoom={false}
         style={{ height: "60vh", minHeight: 480, width: "100%" }}
       >
+        <FitBounds bounds={bounds} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        {/* Soft cased polyline: a thicker translucent line under a thinner solid one. */}
+        <Polyline
+          positions={polyline}
+          pathOptions={{
+            color: "var(--color-primary)",
+            weight: 7,
+            opacity: 0.18,
+          }}
         />
         <Polyline
           positions={polyline}
           pathOptions={{
             color: "var(--color-primary)",
-            weight: 2,
-            opacity: 0.7,
-            dashArray: "6 6",
+            weight: 2.5,
+            opacity: 0.95,
+            dashArray: "8 6",
           }}
         />
         {placed.map((stop, idx) => (
-          <CircleMarker
+          <Marker
             key={stop.id}
-            center={[stop.latitude, stop.longitude]}
-            radius={14}
-            pathOptions={{
-              color: "var(--color-primary)",
-              fillColor: "var(--color-primary)",
-              fillOpacity: 0.9,
-              weight: 2,
-            }}
+            position={[stop.latitude, stop.longitude]}
+            icon={buildPinIcon(idx + 1)}
           >
             <Popup>
               <div className="flex flex-col gap-1">
@@ -123,9 +143,30 @@ export function ItineraryMap({ stops }: ItineraryMapProps) {
                 </p>
               </div>
             </Popup>
-          </CircleMarker>
+          </Marker>
         ))}
       </MapContainer>
+
     </div>
   );
+}
+
+/**
+ * Fits the map view to the trip's bounding box on mount and whenever the
+ * stop set changes (e.g., after a swap). Keeps the heuristic-zoom problem
+ * from before — single-stop trips zoom in tight; sprawling regions stay
+ * comfortably framed.
+ */
+function FitBounds({
+  bounds,
+}: {
+  bounds: [[number, number], [number, number]];
+}) {
+  const map = useMap();
+  useMemo(() => {
+    map.fitBounds(bounds, { padding: [40, 40], animate: false });
+    return null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bounds[0][0], bounds[0][1], bounds[1][0], bounds[1][1]]);
+  return null;
 }

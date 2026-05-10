@@ -9,6 +9,7 @@ import {
   formatTripStatus,
   tripDayCount,
 } from "@/lib/format";
+import { tripCoverUrl } from "@/lib/trip-cover";
 
 interface TripCardData {
   id: string;
@@ -55,17 +56,19 @@ export function TripCard({ trip }: TripCardProps) {
       aria-label={`Open ${trip.name}`}
     >
       <Card className="border-border/70 hover:border-foreground/20 group-focus-visible:ring-ring relative gap-0 overflow-hidden p-0 shadow-none transition hover:shadow-sm group-focus-visible:ring-2">
-        <div className="bg-muted relative aspect-[16/9] w-full">
-          {trip.coverImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={trip.coverImageUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="from-muted to-accent/40 h-full w-full bg-gradient-to-br" />
-          )}
+        <div className="bg-muted relative aspect-[16/9] w-full overflow-hidden">
+          {/* CSS gradient sits behind the image as a graceful fallback when
+              the URL fails to load. */}
+          <div className="from-muted to-accent/40 absolute inset-0 bg-gradient-to-br" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={tripCoverUrl(trip)}
+            alt=""
+            loading="lazy"
+            className="relative h-full w-full object-cover transition group-hover:scale-[1.02]"
+          />
+          {/* Subtle bottom-fade so badges read against busy photos. */}
+          <div className="from-background/40 pointer-events-none absolute inset-0 bg-gradient-to-t to-transparent" />
           <div className="absolute top-3 left-3 flex gap-2">
             <Badge variant="secondary" className="bg-background/90 backdrop-blur">
               {STATUS_LABELS[status]}
