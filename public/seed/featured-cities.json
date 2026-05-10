@@ -1,0 +1,38 @@
+[
+  {
+    "city": "Lisbon",
+    "country": "Portugal",
+    "tagline": "Tile-walled hills, salty sea air, late dinners.",
+    "personality": "chill"
+  },
+  {
+    "city": "Kyoto",
+    "country": "Japan",
+    "tagline": "Temple gardens, kaiseki, machiya alleys.",
+    "personality": "culture"
+  },
+  {
+    "city": "Cape Town",
+    "country": "South Africa",
+    "tagline": "Table Mountain trails, vineyards, ocean roads.",
+    "personality": "adventurer"
+  },
+  {
+    "city": "Mexico City",
+    "country": "Mexico",
+    "tagline": "Markets, mezcal, mid-century murals.",
+    "personality": "foodie"
+  },
+  {
+    "city": "Reykjavík",
+    "country": "Iceland",
+    "tagline": "Glaciers, geysers, long northern light.",
+    "personality": "adventurer"
+  },
+  {
+    "city": "Marrakech",
+    "country": "Morocco",
+    "tagline": "Souks, riads, desert at the edge of the city.",
+    "personality": "culture"
+  }
+]

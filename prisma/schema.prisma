@@ -103,7 +103,7 @@ model SavedDestination {
 model Trip {
   id            String   @id @default(cuid())
   ownerId       String
-  owner         User     @relation(fields: [ownerId], references: [id])
+  owner         User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   name          String
   description   String?
   coverImageUrl String?
@@ -188,7 +188,7 @@ model TripMember {
   tripId   String
   trip     Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
   userId   String
-  user     User     @relation(fields: [userId], references: [id])
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   role     String   @default("traveler") // "owner" | "co-planner" | "traveler"
   status   String   @default("active") // "active" | "pending" | "removed"
   joinedAt DateTime @default(now())
@@ -205,7 +205,7 @@ model Expense {
   tripId      String
   trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
   payerId     String
-  payer       User     @relation("ExpensePayer", fields: [payerId], references: [id])
+  payer       User     @relation("ExpensePayer", fields: [payerId], references: [id], onDelete: Cascade)
   description String
   amount      Float
   currency    String
@@ -225,7 +225,7 @@ model ExpenseShare {
   expenseId    String
   expense      Expense     @relation(fields: [expenseId], references: [id], onDelete: Cascade)
   userId       String
-  user         User        @relation(fields: [userId], references: [id])
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   tripMemberId String?
   tripMember   TripMember? @relation(fields: [tripMemberId], references: [id])
   shareAmount  Float
@@ -260,7 +260,7 @@ model Note {
   stopId    String?
   stop      Stop?    @relation(fields: [stopId], references: [id])
   authorId  String
-  author    User     @relation(fields: [authorId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   day       Int?
   title     String?
   content   String
@@ -278,7 +278,7 @@ model Todo {
   tripId            String
   trip              Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
   userId            String
-  user              User     @relation(fields: [userId], references: [id])
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   content           String
   category          String?
   dueAt             DateTime
@@ -324,7 +324,7 @@ model Notification {
 model TravelMatch {
   id          String   @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   region      String
   startDate   DateTime
   endDate     DateTime
@@ -388,7 +388,7 @@ model PlaceCandidate {
   city         String
   country      String
   proposedById String
-  proposedBy   User       @relation("CandidateProposer", fields: [proposedById], references: [id])
+  proposedBy   User       @relation("CandidateProposer", fields: [proposedById], references: [id], onDelete: Cascade)
   reason       String?
   createdAt    DateTime   @default(now())
 
@@ -402,7 +402,7 @@ model Vote {
   candidateId  String
   candidate    PlaceCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   userId       String
-  user         User           @relation(fields: [userId], references: [id])
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   tripMemberId String?
   tripMember   TripMember?    @relation(fields: [tripMemberId], references: [id])
   weight       Int            @default(1)
