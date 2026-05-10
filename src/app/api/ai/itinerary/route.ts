@@ -22,7 +22,7 @@ import { geocodeCity } from "@/lib/geocode";
 
 export const runtime = "nodejs";
 // AI calls take many seconds; bump default timeout.
-export const maxDuration = 90;
+export const maxDuration = 180;
 
 const personalityEnum = z.enum([
   "foodie",
@@ -92,6 +92,7 @@ export async function POST(req: Request) {
       user: userPrompt,
       schema: itineraryJsonSchema,
       temperature: 0.7,
+      timeoutMs: 150_000,
       validate: (raw) => itinerarySchema.parse(raw),
     });
   } catch (err) {

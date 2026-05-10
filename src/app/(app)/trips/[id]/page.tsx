@@ -61,6 +61,7 @@ export default async function TripPage({ params, searchParams }: TripPageProps) 
               category: true,
               estimatedDurationHours: true,
               estimatedCost: true,
+              imageUrl: true,
             },
           },
         },

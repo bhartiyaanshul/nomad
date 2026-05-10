@@ -12,6 +12,7 @@ interface ActivityShape {
   category: string;
   estimatedDurationHours: number | null;
   estimatedCost: number;
+  imageUrl?: string | null;
 }
 
 interface StopShape {
@@ -121,7 +122,7 @@ function ActivityRow({
   return (
     <li
       className={cn(
-        "border-border/70 bg-card flex flex-col gap-1.5 rounded-md border p-4",
+        "border-border/70 bg-card flex flex-col gap-3 overflow-hidden rounded-md border p-4",
         className,
       )}
     >
@@ -156,6 +157,14 @@ function ActivityRow({
           ) : null}
         </div>
       </div>
+      {activity.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={activity.imageUrl}
+          alt=""
+          className="border-border/70 h-40 w-full rounded-md border object-cover"
+        />
+      ) : null}
       <p className="text-muted-foreground text-xs tracking-wide uppercase">
         <MapPin className="mr-1 inline size-3" />
         {categoryLabel(activity.category)}

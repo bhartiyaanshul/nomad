@@ -55,6 +55,7 @@ export default async function BuildPage({ params }: BuildPageProps) {
               estimatedDurationHours: true,
               estimatedCost: true,
               bookingUrl: true,
+              imageUrl: true,
             },
           },
         },

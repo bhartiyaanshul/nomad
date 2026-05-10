@@ -63,15 +63,49 @@ async function main() {
     name: "Carla Diaz",
     personality: "culture",
   });
+  const diego = await ensureUser({
+    email: "diego@traveloop.dev",
+    name: "Diego Alvarez",
+    personality: "adventurer",
+  });
+  const emi = await ensureUser({
+    email: "emi@traveloop.dev",
+    name: "Emi Tanaka",
+    personality: "foodie",
+  });
+  const farah = await ensureUser({
+    email: "farah@traveloop.dev",
+    name: "Farah El-Amin",
+    personality: "culture",
+  });
+  const greta = await ensureUser({
+    email: "greta@traveloop.dev",
+    name: "Greta Lindqvist",
+    personality: "chill",
+  });
+  const hiro = await ensureUser({
+    email: "hiro@traveloop.dev",
+    name: "Hiro Kobayashi",
+    personality: "culture",
+  });
 
   // Wipe demo trips so re-running is idempotent
+  const demoUserIds = [
+    admin.id,
+    alice.id,
+    bob.id,
+    carla.id,
+    diego.id,
+    emi.id,
+    farah.id,
+    greta.id,
+    hiro.id,
+  ];
   await db.trip.deleteMany({
-    where: {
-      ownerId: { in: [admin.id, alice.id, bob.id, carla.id] },
-    },
+    where: { ownerId: { in: demoUserIds } },
   });
   await db.travelMatch.deleteMany({
-    where: { userId: { in: [admin.id, alice.id, bob.id, carla.id] } },
+    where: { userId: { in: demoUserIds } },
   });
 
   // ============ Trip 1 — solo Foodie in Vietnam (Alice) ============
@@ -349,6 +383,98 @@ async function main() {
     },
   });
 
+  // Wider-ranging traveller profiles so a real user creating a profile in
+  // any of these regions gets immediate matches to browse.
+  await db.travelMatch.createMany({
+    data: [
+      {
+        userId: diego.id,
+        region: "Patagonia",
+        startDate: addDays(new Date(), 30),
+        endDate: addDays(new Date(), 120),
+        personality: "adventurer",
+        budgetMin: 60,
+        budgetMax: 180,
+        currency: "USD",
+        groupSize: 2,
+        preferences: JSON.stringify({
+          pace: "fast",
+          interests: ["hiking", "trail running", "climbing"],
+          languages: ["English", "Spanish"],
+          experience: "Long-haul backpacker",
+        }),
+      },
+      {
+        userId: emi.id,
+        region: "Japan",
+        startDate: addDays(new Date(), 0),
+        endDate: addDays(new Date(), 180),
+        personality: "foodie",
+        budgetMin: 80,
+        budgetMax: 220,
+        currency: "USD",
+        groupSize: 2,
+        preferences: JSON.stringify({
+          pace: "balanced",
+          interests: ["ramen", "izakaya", "kaiseki", "specialty coffee"],
+          languages: ["English", "Japanese"],
+          experience: "Mid — annual trips",
+        }),
+      },
+      {
+        userId: farah.id,
+        region: "Morocco",
+        startDate: addDays(new Date(), 14),
+        endDate: addDays(new Date(), 150),
+        personality: "culture",
+        budgetMin: 50,
+        budgetMax: 140,
+        currency: "USD",
+        groupSize: 3,
+        preferences: JSON.stringify({
+          pace: "balanced",
+          interests: ["riads", "souks", "desert nights", "ceramics"],
+          languages: ["English", "French", "Arabic"],
+          experience: "Well-travelled",
+        }),
+      },
+      {
+        userId: greta.id,
+        region: "Italy",
+        startDate: addDays(new Date(), 20),
+        endDate: addDays(new Date(), 160),
+        personality: "chill",
+        budgetMin: 70,
+        budgetMax: 200,
+        currency: "EUR",
+        groupSize: 2,
+        preferences: JSON.stringify({
+          pace: "slow",
+          interests: ["lakes", "cafes", "modernist design"],
+          languages: ["English", "Swedish"],
+          experience: "Mid",
+        }),
+      },
+      {
+        userId: hiro.id,
+        region: "Japan",
+        startDate: addDays(new Date(), 7),
+        endDate: addDays(new Date(), 170),
+        personality: "culture",
+        budgetMin: 90,
+        budgetMax: 240,
+        currency: "USD",
+        groupSize: 2,
+        preferences: JSON.stringify({
+          pace: "balanced",
+          interests: ["temples", "noh theatre", "traditional crafts"],
+          languages: ["English", "Japanese"],
+          experience: "Local guide knowledge",
+        }),
+      },
+    ],
+  });
+
   // ============ Admin events for the dashboard charts ============
   for (let i = 0; i < 30; i++) {
     const day = addDays(new Date(), -i);
@@ -386,9 +512,14 @@ async function main() {
 
   console.log("Seed complete:");
   console.log("  admin@traveloop.dev / Password1   (admin)");
-  console.log("  alice@traveloop.dev / Password1   (foodie, Vietnam)");
+  console.log("  alice@traveloop.dev / Password1   (foodie, Vietnam trip)");
   console.log("  bob@traveloop.dev   / Password1   (adventurer, Patagonia public)");
   console.log("  carla@traveloop.dev / Password1   (culture, Italy public)");
+  console.log("  diego@traveloop.dev / Password1   (Patagonia match profile)");
+  console.log("  emi@traveloop.dev   / Password1   (Japan match profile)");
+  console.log("  farah@traveloop.dev / Password1   (Morocco match profile)");
+  console.log("  greta@traveloop.dev / Password1   (Italy match profile)");
+  console.log("  hiro@traveloop.dev  / Password1   (Japan match profile)");
 }
 
 interface SeedStopInput {

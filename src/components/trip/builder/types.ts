@@ -7,6 +7,7 @@ export interface BuilderActivity {
   estimatedDurationHours: number | null;
   estimatedCost: number;
   bookingUrl: string | null;
+  imageUrl: string | null;
 }
 
 export interface BuilderStop {

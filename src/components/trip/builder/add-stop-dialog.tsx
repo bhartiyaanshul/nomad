@@ -5,6 +5,7 @@ import { Globe, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { CitySearchDialog } from "./city-search-dialog";
+import { CityCountryDatalists } from "./city-country-datalists";
 
 import {
   Dialog,
@@ -106,6 +107,8 @@ export function AddStopDialog({
                 name="city"
                 required
                 placeholder="Hanoi"
+                list="addstop-city-list"
+                autoComplete="off"
               />
             </Field>
             <Field
@@ -120,6 +123,12 @@ export function AddStopDialog({
                 name="country"
                 required
                 placeholder="Vietnam"
+                list="addstop-country-list"
+                autoComplete="off"
+              />
+              <CityCountryDatalists
+                cityListId="addstop-city-list"
+                countryListId="addstop-country-list"
               />
             </Field>
           </div>
@@ -171,65 +180,72 @@ export function AddStopDialog({
             />
           </Field>
 
-          <div className="grid gap-5 sm:grid-cols-2">
-            <Field
-              id="add-accomName"
-              label="Accommodation"
-              errors={fieldErrors?.accomName}
-            >
-              <Input
+          <div className="border-border/60 rounded-md border bg-card/40 p-4">
+            <p className="text-foreground mb-3 text-sm font-medium">
+              Accommodation <span className="text-muted-foreground">(required)</span>
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
                 id="add-accomName"
-                name="accomName"
-                placeholder="Old Quarter Hostel"
-              />
-            </Field>
-            <Field
-              id="add-accomType"
-              label="Type"
-              errors={fieldErrors?.accomType}
-            >
-              <Select name="accomType">
-                <SelectTrigger id="add-accomType">
-                  <SelectValue placeholder="Choose" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ACCOM_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t.replace(/_/g, " ")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          </div>
-
-          <div className="grid gap-5 sm:grid-cols-3">
-            <Field
-              id="add-accomCostPerNight"
-              label="Per night"
-              errors={fieldErrors?.accomCostPerNight}
-            >
-              <Input
+                label="Name"
+                required
+                errors={fieldErrors?.accomName}
+              >
+                <Input
+                  id="add-accomName"
+                  name="accomName"
+                  required
+                  placeholder="Old Quarter Hostel"
+                />
+              </Field>
+              <Field
+                id="add-accomType"
+                label="Type"
+                required
+                errors={fieldErrors?.accomType}
+              >
+                <Select name="accomType" required>
+                  <SelectTrigger id="add-accomType">
+                    <SelectValue placeholder="Choose" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ACCOM_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t.replace(/_/g, " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field
                 id="add-accomCostPerNight"
-                name="accomCostPerNight"
-                type="number"
-                min={0}
-                step={1}
-              />
-            </Field>
-            <Field
-              id="add-dailyFoodEstimate"
-              label="Daily food"
-              errors={fieldErrors?.dailyFoodEstimate}
-            >
-              <Input
+                label="Cost per night"
+                required
+                errors={fieldErrors?.accomCostPerNight}
+              >
+                <Input
+                  id="add-accomCostPerNight"
+                  name="accomCostPerNight"
+                  type="number"
+                  min={0}
+                  step={1}
+                  required
+                />
+              </Field>
+              <Field
                 id="add-dailyFoodEstimate"
-                name="dailyFoodEstimate"
-                type="number"
-                min={0}
-                step={1}
-              />
-            </Field>
+                label="Daily food estimate"
+                errors={fieldErrors?.dailyFoodEstimate}
+              >
+                <Input
+                  id="add-dailyFoodEstimate"
+                  name="dailyFoodEstimate"
+                  type="number"
+                  min={0}
+                  step={1}
+                />
+              </Field>
+            </div>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-3">

@@ -278,18 +278,32 @@ function AddActivityDialog({
             </Field>
           </div>
 
+          <Field
+            id="act-duration"
+            label="Duration (hours)"
+            errors={fieldErrors?.estimatedDurationHours}
+          >
+            <Input
+              id="act-duration"
+              name="estimatedDurationHours"
+              type="number"
+              min={0}
+              step={0.5}
+            />
+          </Field>
+
           <div className="grid gap-5 sm:grid-cols-2">
             <Field
-              id="act-duration"
-              label="Duration (hours)"
-              errors={fieldErrors?.estimatedDurationHours}
+              id="act-imageUrl"
+              label="Image URL"
+              hint="Paste a public image URL (Unsplash, your own host, etc.)"
+              errors={fieldErrors?.imageUrl}
             >
               <Input
-                id="act-duration"
-                name="estimatedDurationHours"
-                type="number"
-                min={0}
-                step={0.5}
+                id="act-imageUrl"
+                name="imageUrl"
+                type="url"
+                placeholder="https://images.unsplash.com/…"
               />
             </Field>
             <Field

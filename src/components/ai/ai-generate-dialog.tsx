@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { addDays, format } from "date-fns";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
@@ -38,6 +39,33 @@ const PERSONALITIES = [
 
 const CURRENCIES = ["USD", "EUR", "GBP", "JPY", "INR", "AUD", "CAD"];
 
+const REGION_SUGGESTIONS = [
+  "Vietnam",
+  "Thailand",
+  "Japan",
+  "Indonesia",
+  "South Korea",
+  "India",
+  "Sri Lanka",
+  "Northern Italy",
+  "Andalusia, Spain",
+  "Portugal",
+  "Greece",
+  "Croatia",
+  "Iceland",
+  "Norway",
+  "Morocco",
+  "Egypt",
+  "Kenya",
+  "South Africa",
+  "Patagonia",
+  "Peru",
+  "Mexico",
+  "Costa Rica",
+  "Pacific Northwest USA",
+  "New Zealand South Island",
+];
+
 interface AIGenerateDialogProps {
   trigger: React.ReactNode;
   defaultPersonality?: string | null;
@@ -52,6 +80,18 @@ const STAGE_LABELS: Record<Exclude<Stage, "idle">, string> = {
   saving: "Saving the trip",
 };
 
+interface FormValues {
+  region: string;
+  days: string;
+  numStops: string;
+  startDate: string;
+  budget: string;
+  currency: string;
+  personality: string;
+  discoveryMode: string;
+  tripName: string;
+}
+
 export function AIGenerateDialog({
   trigger,
   defaultPersonality,
@@ -65,33 +105,46 @@ export function AIGenerateDialog({
     Record<string, string[]> | undefined
   >();
 
+  // Controlled form values so they survive Pending → Idle transitions.
+  const [values, setValues] = useState<FormValues>({
+    region: "",
+    days: "10",
+    numStops: "3",
+    startDate: "",
+    budget: "1500",
+    currency: defaultCurrency,
+    personality: defaultPersonality ?? "mixed",
+    discoveryMode: "popular",
+    tripName: "",
+  });
+
   const isPending = stage !== "idle";
 
-  // Reset stage and errors when the dialog closes — derived from the same
-  // render rather than scheduled via an effect, to satisfy React 19's
-  // set-state-in-effect rule.
+  // Reset only errors and stage when the dialog closes — keep form values
+  // so the user gets them back if they reopen the dialog.
   if (!open && (stage !== "idle" || errorMessage || fieldErrors)) {
     setStage("idle");
     setErrorMessage(null);
     setFieldErrors(undefined);
   }
 
-  async function handleSubmit(form: FormData) {
+  function update<K extends keyof FormValues>(key: K, value: FormValues[K]) {
+    setValues((prev) => ({ ...prev, [key]: value }));
+  }
+
+  // Computed end date for display only — the API takes start + days.
+  const computedEndDate =
+    values.startDate && Number(values.days) > 0
+      ? format(
+          addDays(new Date(values.startDate), Math.max(0, Number(values.days) - 1)),
+          "EEE d MMM yyyy",
+        )
+      : null;
+
+  async function handleSubmit() {
     setErrorMessage(null);
     setFieldErrors(undefined);
     setStage("thinking");
-
-    const payload = {
-      region: form.get("region"),
-      days: form.get("days"),
-      budget: form.get("budget"),
-      currency: form.get("currency") ?? "USD",
-      personality: form.get("personality"),
-      numStops: form.get("numStops") ?? 3,
-      discoveryMode: form.get("discoveryMode") ?? "popular",
-      startDate: form.get("startDate"),
-      tripName: form.get("tripName") || undefined,
-    };
 
     const stageWalker = setTimeout(() => setStage("mapping"), 8_000);
     const stageWalker2 = setTimeout(() => setStage("saving"), 24_000);
@@ -100,7 +153,10 @@ export function AIGenerateDialog({
       const res = await fetch("/api/ai/itinerary", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...values,
+          tripName: values.tripName.trim() || undefined,
+        }),
       });
 
       const data = (await res.json()) as {
@@ -112,23 +168,55 @@ export function AIGenerateDialog({
 
       if (!res.ok) {
         if (res.status === 503 && data.code === "ollama_unavailable") {
-          setErrorMessage(data.error ?? "Ollama isn't reachable.");
+          setErrorMessage(
+            "AI generation is offline. Start Ollama with `ollama serve` and pull the model with `ollama pull qwen3.5`. Your inputs are saved.",
+          );
+        } else if (res.status === 504 || data.code === "timeout") {
+          setErrorMessage(
+            "Ollama took too long to respond. Try a smaller plan (fewer days or stops) — your inputs are saved.",
+          );
+        } else if (data.code === "ollama_error") {
+          setErrorMessage(
+            (data.error ?? "The model returned an error.") +
+              " Your inputs are saved.",
+          );
         } else if (res.status === 400 && data.fieldErrors) {
           setFieldErrors(data.fieldErrors);
-          setErrorMessage(data.error ?? "Check the form");
+          setErrorMessage(data.error ?? "Check the highlighted fields");
         } else {
-          setErrorMessage(data.error ?? "Could not generate itinerary");
+          setErrorMessage(
+            (data.error ?? "Could not generate itinerary") +
+              " Your inputs are saved.",
+          );
         }
         setStage("idle");
         return;
       }
 
       toast.success("Itinerary ready");
+      // Clear values only on success.
       setOpen(false);
+      setValues({
+        region: "",
+        days: "10",
+        numStops: "3",
+        startDate: "",
+        budget: "1500",
+        currency: defaultCurrency,
+        personality: defaultPersonality ?? "mixed",
+        discoveryMode: "popular",
+        tripName: "",
+      });
       router.push(`/trips/${data.tripId}`);
     } catch (err) {
+      const isAbort =
+        err instanceof Error && /aborted|timeout/i.test(err.message);
       console.error(err);
-      setErrorMessage("Network error — try again");
+      setErrorMessage(
+        isAbort
+          ? "Request timed out before the model finished. Try fewer days or stops — your inputs are saved."
+          : "Network error. Try again — your inputs are saved.",
+      );
       setStage("idle");
     } finally {
       clearTimeout(stageWalker);
@@ -140,7 +228,7 @@ export function AIGenerateDialog({
     <Dialog
       open={open}
       onOpenChange={(o) => {
-        if (isPending && !o) return; // don't allow closing mid-call
+        if (isPending && !o) return;
         setOpen(o);
       }}
     >
@@ -163,12 +251,16 @@ export function AIGenerateDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {isPending ? (
-          <ProgressView stage={stage as Exclude<Stage, "idle">} />
-        ) : (
+        <div className="relative">
           <form
-            action={handleSubmit}
-            className="flex flex-col gap-5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!isPending) handleSubmit();
+            }}
+            className={cn(
+              "flex flex-col gap-5 transition",
+              isPending && "pointer-events-none opacity-30",
+            )}
             noValidate
           >
             <Field
@@ -184,7 +276,16 @@ export function AIGenerateDialog({
                 required
                 placeholder="Vietnam"
                 maxLength={120}
+                value={values.region}
+                onChange={(e) => update("region", e.target.value)}
+                list="ai-region-suggestions"
+                autoComplete="off"
               />
+              <datalist id="ai-region-suggestions">
+                {REGION_SUGGESTIONS.map((r) => (
+                  <option key={r} value={r} />
+                ))}
+              </datalist>
             </Field>
 
             <div className="grid gap-5 sm:grid-cols-3">
@@ -200,7 +301,8 @@ export function AIGenerateDialog({
                   type="number"
                   min={1}
                   max={60}
-                  defaultValue={10}
+                  value={values.days}
+                  onChange={(e) => update("days", e.target.value)}
                   required
                 />
               </Field>
@@ -216,12 +318,16 @@ export function AIGenerateDialog({
                   type="number"
                   min={1}
                   max={12}
-                  defaultValue={3}
+                  value={values.numStops}
+                  onChange={(e) => update("numStops", e.target.value)}
                 />
               </Field>
               <Field
                 id="ai-startDate"
                 label="Start date"
+                hint={
+                  computedEndDate ? `Returns ${computedEndDate}` : undefined
+                }
                 required
                 errors={fieldErrors?.startDate}
               >
@@ -230,6 +336,8 @@ export function AIGenerateDialog({
                   name="startDate"
                   type="date"
                   required
+                  value={values.startDate}
+                  onChange={(e) => update("startDate", e.target.value)}
                 />
               </Field>
             </div>
@@ -248,7 +356,8 @@ export function AIGenerateDialog({
                   type="number"
                   min={0}
                   step={50}
-                  defaultValue={1500}
+                  value={values.budget}
+                  onChange={(e) => update("budget", e.target.value)}
                   required
                 />
               </Field>
@@ -257,7 +366,10 @@ export function AIGenerateDialog({
                 label="Currency"
                 errors={fieldErrors?.currency}
               >
-                <Select name="currency" defaultValue={defaultCurrency}>
+                <Select
+                  value={values.currency}
+                  onValueChange={(v) => update("currency", v)}
+                >
                   <SelectTrigger id="ai-currency">
                     <SelectValue />
                   </SelectTrigger>
@@ -280,8 +392,8 @@ export function AIGenerateDialog({
                 errors={fieldErrors?.personality}
               >
                 <Select
-                  name="personality"
-                  defaultValue={defaultPersonality ?? "mixed"}
+                  value={values.personality}
+                  onValueChange={(v) => update("personality", v)}
                 >
                   <SelectTrigger id="ai-personality">
                     <SelectValue />
@@ -300,7 +412,10 @@ export function AIGenerateDialog({
                 label="Discovery mode"
                 hint="Popular for crowd favourites, Explore for offbeat picks"
               >
-                <Select name="discoveryMode" defaultValue="popular">
+                <Select
+                  value={values.discoveryMode}
+                  onValueChange={(v) => update("discoveryMode", v)}
+                >
                   <SelectTrigger id="ai-discoveryMode">
                     <SelectValue />
                   </SelectTrigger>
@@ -322,16 +437,23 @@ export function AIGenerateDialog({
                 name="tripName"
                 maxLength={120}
                 placeholder="Vietnam street-food run"
+                value={values.tripName}
+                onChange={(e) => update("tripName", e.target.value)}
               />
             </Field>
 
             {errorMessage ? <FormError message={errorMessage} /> : null}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setOpen(false)}
+                disabled={isPending}
+              >
                 Cancel
               </Button>
-              <Button type="submit" className="gap-2">
+              <Button type="submit" className="gap-2" disabled={isPending}>
                 <Sparkles className="size-4" />
                 Generate itinerary
               </Button>
@@ -339,11 +461,17 @@ export function AIGenerateDialog({
 
             <p className="text-muted-foreground text-xs leading-relaxed">
               Generation usually takes 10 to 30 seconds depending on the
-              model and the number of stops. The plan stays open until the
-              trip is saved.
+              model and the number of stops. Your inputs are kept if anything
+              fails.
             </p>
           </form>
-        )}
+
+          {isPending ? (
+            <div className="bg-background/85 absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm">
+              <ProgressView stage={stage as Exclude<Stage, "idle">} />
+            </div>
+          ) : null}
+        </div>
       </DialogContent>
     </Dialog>
   );

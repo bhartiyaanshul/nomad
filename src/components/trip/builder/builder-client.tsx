@@ -100,7 +100,7 @@ export function BuilderClient({ trip }: BuilderClientProps) {
             Stops · {stops.length}
           </p>
           <h2 className="font-display mt-1 text-lg tracking-tight">
-            Drag to reorder
+            {stops.length > 1 ? "Drag to reorder" : "Add a stop"}
           </h2>
         </div>
 

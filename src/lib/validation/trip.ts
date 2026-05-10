@@ -62,14 +62,18 @@ export const TRANSPORT_MODES = [
 
 export const createStopSchema = z.object({
   tripId: z.string().min(1),
-  city: z.string().trim().min(1).max(80),
-  country: z.string().trim().min(1).max(80),
+  city: z.string().trim().min(1, "City is required").max(80),
+  country: z.string().trim().min(1, "Country is required").max(80),
   arrivalDay: z.coerce.number().int().min(1),
   departureDay: z.coerce.number().int().min(1),
   summary: z.string().max(280).optional().nullable(),
-  accomName: z.string().max(120).optional().nullable(),
-  accomType: z.enum(ACCOM_TYPES).optional().nullable(),
-  accomCostPerNight: z.coerce.number().nonnegative().optional().nullable(),
+  // Accommodation is required when adding a new stop — every traveller
+  // needs somewhere to sleep, and the budget calculation depends on it.
+  accomName: z.string().trim().min(1, "Accommodation name is required").max(120),
+  accomType: z.enum(ACCOM_TYPES, { message: "Pick an accommodation type" }),
+  accomCostPerNight: z.coerce
+    .number({ message: "Per-night cost is required" })
+    .nonnegative(),
   transportMode: z.enum(TRANSPORT_MODES).optional().nullable(),
   transportCost: z.coerce.number().nonnegative().optional().nullable(),
   transportHours: z.coerce.number().nonnegative().optional().nullable(),
@@ -100,7 +104,18 @@ export const createActivitySchema = z.object({
   category: z.enum(ACTIVITY_CATEGORIES),
   estimatedDurationHours: z.coerce.number().nonnegative().optional().nullable(),
   estimatedCost: z.coerce.number().nonnegative().default(0),
-  bookingUrl: z.string().url().optional().nullable(),
+  bookingUrl: z
+    .string()
+    .url()
+    .optional()
+    .nullable()
+    .or(z.literal("").transform(() => null)),
+  imageUrl: z
+    .string()
+    .url()
+    .optional()
+    .nullable()
+    .or(z.literal("").transform(() => null)),
 });
 
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;

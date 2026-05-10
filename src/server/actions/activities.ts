@@ -58,6 +58,7 @@ export async function createActivityAction(
     estimatedDurationHours: formData.get("estimatedDurationHours") || null,
     estimatedCost: formData.get("estimatedCost") || 0,
     bookingUrl: formData.get("bookingUrl") || null,
+    imageUrl: formData.get("imageUrl") || null,
   });
 
   if (!parsed.success) {
@@ -88,6 +89,7 @@ export async function createActivityAction(
       estimatedDurationHours: parsed.data.estimatedDurationHours ?? null,
       estimatedCost: parsed.data.estimatedCost ?? 0,
       bookingUrl: parsed.data.bookingUrl ?? null,
+      imageUrl: parsed.data.imageUrl ?? null,
     },
   });
 

@@ -107,24 +107,27 @@ export function PersonalityQuiz({ open }: PersonalityQuizProps) {
           </div>
         ) : (
           <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-muted-foreground text-xs tracking-wide uppercase">
+                Personality · question {step + 1} of {total}
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={skip}
+                disabled={pending}
+                className="text-muted-foreground h-7 px-2 text-xs"
+              >
+                Skip for now
+              </Button>
+            </div>
+            <Progress
+              value={((step + 1) / total) * 100}
+              className="h-1.5"
+            />
             <DialogHeader>
-              <div className="flex items-center justify-between">
-                <p className="text-muted-foreground text-xs tracking-wide uppercase">
-                  Personality · question {step + 1} of {total}
-                </p>
-                <button
-                  type="button"
-                  onClick={skip}
-                  className="text-muted-foreground hover:text-foreground text-xs transition"
-                >
-                  Skip for now
-                </button>
-              </div>
-              <Progress
-                value={((step + 1) / total) * 100}
-                className="h-1.5"
-              />
-              <DialogTitle className="font-display mt-4 text-2xl tracking-tight">
+              <DialogTitle className="font-display text-2xl tracking-tight">
                 {current.prompt}
               </DialogTitle>
               <DialogDescription className="sr-only">
