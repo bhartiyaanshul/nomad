@@ -175,3 +175,25 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/* Print: hide chrome, expand the trip view onto the page. */
+@media print {
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  aside,
+  header,
+  nav,
+  .no-print,
+  [data-no-print] {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+  .print-region {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+}
