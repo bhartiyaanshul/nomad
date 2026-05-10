@@ -2,21 +2,24 @@
 
 > Personalized, intelligent, and collaborative travel planning powered by AI.
 
-Traveloop is a multi-city travel planning application that combines structured itinerary building with AI-powered personalization, group collaboration, and adaptive re-planning. Plan solo or with friends, split expenses, get itineraries shaped by your travel personality, and re-route dynamically when destinations become unavailable.
+Traveloop turns a region, duration, budget, and personality into a complete multi-city itinerary; lets a group shape it together with real-time voting; adapts when reality changes; and quietly handles the expense-splitting at the end of the day.
 
 ---
 
 ## Highlights
 
-- **AI-generated itineraries** — describe a region, duration, budget, and personality; get a complete day-by-day multi-city trip with stops, activities, transport, and accommodation.
-- **Personality-driven planning** — Foodie, Adventurer, Culture, Chill, Social, Budget, Luxury. Every recommendation is shaped by who you are as a traveler.
-- **Trip Blend (live group planning)** — invite friends, propose cities, vote, and watch the AI re-blend the itinerary in real time as votes come in.
+- **AI-generated itineraries** — describe a region, duration, budget, and personality; get a day-by-day plan with stops, activities, transport, and accommodation, costed within ten percent.
+- **Personality-driven planning** — Foodie, Adventurer, Culture, Chill, Social, Budget, Luxury. Every recommendation is weighted around the way you actually travel.
+- **Trip Blend** — invite a group, propose places, vote, and watch the AI re-blend the itinerary in real time as preferences shift. The deadline is the decision.
 - **Splitwise-style expenses** — track group spend across multiple currencies and settle up with the minimum number of transactions.
-- **Adaptive re-planning** — mark a destination as compromised (advisory, weather, closed) and the AI suggests three alternatives that preserve cost, distance, and personality fit.
-- **Travel companion matching** — find compatible travelers for shared trips with AI-scored compatibility.
-- **Smart todos & reminders** — AI generates trip-prep todos (visa, vaccinations, insurance, check-in) with optimal reminder schedules.
-- **Public sharing** — share itineraries with a public link; viewers can copy them to their own account.
-- **Map, calendar, and timeline views** — visualize trips three ways with cost breakdowns by category, day, and stop.
+- **Adaptive re-planning** — mark a destination compromised; the model suggests three alternatives that preserve cost, distance, and personality fit.
+- **Travel companion matching** — find compatible travellers for shared trips with AI-scored compatibility across personality, budget, pace, interests, and communication.
+- **Smart todos & reminders** — AI generates trip-prep todos (visa, vaccinations, insurance, check-in) with optimal reminder schedules; in-app notifications drop into a topbar bell.
+- **Region pinpoint discovery** — give a region and your pace, get geographically-clustered points of interest with a 60/40 mix of offbeat and famous.
+- **Public sharing** — toggle a trip public for a copy-able link with rich Open Graph previews and view counts.
+- **Map / calendar / timeline views** — one trip, three lenses; full budget breakdowns by category, day, and stop; PDF export through the browser print pipeline.
+- **Markdown notes & smart packing** — journal entries scoped to trip / stop / day, plus an AI-generated packing list that adapts to climate and activities.
+- **Admin dashboard** — KPIs, retention cohorts, top destinations, trips over time, user management with CSV export.
 
 ---
 
@@ -24,152 +27,140 @@ Traveloop is a multi-city travel planning application that combines structured i
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 15 (App Router, TypeScript) |
-| UI | React 19, Tailwind CSS, shadcn/ui |
-| ORM | Prisma 5 |
+| Framework | Next.js 16 (App Router, TypeScript, Turbopack) |
+| UI | React 19, Tailwind CSS v4, shadcn/ui (zinc + custom oklch palette) |
+| Type system | strict TypeScript, no `any` |
+| ORM | Prisma 6 |
 | Database | SQLite (dev) / PostgreSQL (prod) |
-| Auth | NextAuth.js (credentials + Google OAuth) |
-| Validation | Zod |
-| State | TanStack Query, Zustand |
-| Maps | react-leaflet + Leaflet |
+| Auth | Auth.js (NextAuth v5), credentials + Google OAuth, bcrypt |
+| Validation | Zod (shared between forms and server actions) |
+| State | TanStack Query, Zustand, SWR (light polling) |
+| Maps | react-leaflet + Leaflet + OpenStreetMap tiles |
 | Charts | Recharts |
+| Drag and drop | @dnd-kit/sortable |
+| Markdown | @uiw/react-md-editor |
 | AI | Ollama running `qwen3.5` locally |
-| Geocoding | Nominatim (OpenStreetMap) |
-| Real-time | Server-Sent Events |
-| Background jobs | node-cron |
-| Email | Resend (optional) |
+| Geocoding | Nominatim (rate-limited, 30-day DB cache) |
+| Real-time | Server-Sent Events with an in-process Node EventEmitter |
+| Background | node-cron sweeper for reminders |
+| Email | Resend (optional, env-gated) |
+| Tests | Vitest |
 | Deployment | Vercel |
 
 ---
 
-## Features (21 total)
-
-### Base Features
-1. Authentication — signup, login, password reset, Google OAuth
-2. Dashboard — upcoming trips, recommendations, budget snapshot, recent activity
-3. Create Trip — manual or AI-assisted
-4. Trip List — filter, sort, search across all your trips
-5. Itinerary Builder — drag-and-drop stops, day allocation, activity assignment
-6. Itinerary View — timeline / calendar / map modes
-7. City Search — global city database with cost-of-living, population, region filters
-8. Activity Search — POIs by category, cost, and duration
-9. Budget & Cost Breakdown — pie, bar, and per-stop charts with overspend alerts
-10. Packing Checklist — AI-generated, category-grouped, reusable across trips
-11. Public Sharing — share URL with copy-to-account flow and Open Graph previews
-12. Profile & Settings — preferences, saved destinations, security, account management
-13. Notes & Journal — markdown notes scoped to trip, stop, or day
-14. Admin Dashboard — user management, KPIs, retention cohorts, top destinations
-
-### Advanced Features
-1. Splitwise — multi-currency group expenses with minimum-transaction settlement
-2. Random Pinpoints — region-based AI discovery of clustered offbeat + popular spots
-3. Travel Companion Matching — AI-scored compatibility for shared trips
-4. Dynamic Re-planning — AI alternatives for compromised destinations
-5. AI Personality Matching — itineraries shaped by an onboarding personality quiz
-6. Smart Todos & Reminders — AI-generated trip prep with optimal reminder schedules
-7. Trip Blend — real-time group voting with live AI itinerary regeneration via SSE
-
----
-
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
 - Node.js 20+
 - pnpm 9+
-- [Ollama](https://ollama.ai) installed and running locally
-- The `qwen3.5` model pulled: `ollama pull qwen3.5`
+- [Ollama](https://ollama.ai) (for AI features)
 
 ### Setup
 
 ```bash
-# clone
-git clone <your-repo-url> traveloop
+git clone https://github.com/bhartiyaanshul/nomad.git traveloop
 cd traveloop
 
-# install
 pnpm install
 
-# configure environment
 cp .env.example .env.local
-# edit .env.local — at minimum set NEXTAUTH_SECRET and DATABASE_URL
+# at minimum: NEXTAUTH_SECRET (openssl rand -base64 32), DATABASE_URL
 
-# database
 pnpm prisma migrate dev
-pnpm seed
+pnpm seed              # demo accounts + trips + match profiles + admin events
 
-# run
 pnpm dev
 ```
 
-The app will be available at [http://localhost:3000](http://localhost:3000).
+Open http://localhost:3000.
 
-### Generate your secret
+### Demo accounts (created by `pnpm seed`)
 
-```bash
-openssl rand -base64 32
-```
+All four accounts share the password `Password1`.
 
-Paste the output as the value of `NEXTAUTH_SECRET` in `.env.local`.
+| Email | Personality | Notes |
+|---|---|---|
+| `admin@traveloop.dev` | mixed | admin user, sees `/admin` |
+| `alice@traveloop.dev` | foodie | owns a Vietnam trip; has a match profile |
+| `bob@traveloop.dev` | adventurer | owns a public Patagonia trip with a Trip Blend in progress |
+| `carla@traveloop.dev` | culture | owns a public Italy trip; overlapping match profile with Alice |
 
 ### Ollama setup
 
-Traveloop talks to Ollama at `http://localhost:11434` by default. Make sure Ollama is running and the model is available:
-
 ```bash
-ollama serve            # in a separate terminal, if not already running
+ollama serve
 ollama pull qwen3.5
-ollama list             # confirm qwen3.5 is present
 ```
 
-If you want to use a different model, set `OLLAMA_MODEL` in `.env.local`.
+If Ollama isn't running, the app shows a calm offline banner and the AI surfaces become no-ops; everything else (manual planning, expenses, notes, admin) keeps working.
 
 ---
 
-## Environment Variables
+## Environment variables
 
-See `.env.example` for the full list. Required for local development:
+See `.env.example` for the full list. Required for local dev:
 
-- `DATABASE_URL` — Prisma connection string (defaults to SQLite at `file:./dev.db`)
-- `NEXTAUTH_SECRET` — random 32-byte string
-- `NEXTAUTH_URL` — `http://localhost:3000` for dev
+- `DATABASE_URL` — defaults to SQLite at `file:./dev.db`
+- `NEXTAUTH_SECRET` — `openssl rand -base64 32`
+- `NEXTAUTH_URL` — `http://localhost:3000`
 - `OLLAMA_BASE_URL` — `http://localhost:11434`
 - `OLLAMA_MODEL` — `qwen3.5`
 
-Optional integrations are gated by env presence — the app degrades gracefully when keys are missing:
+Optional (degrade gracefully when missing):
 
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — Google OAuth
-- `RESEND_API_KEY` — email reminders and password reset emails
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — Google OAuth on signup / login
+- `RESEND_API_KEY` / `RESEND_FROM` — password-reset and reminder emails (otherwise logged to console)
+- `EXCHANGE_RATE_API_KEY` — multi-currency expense conversion (otherwise pass-through)
 - `FOURSQUARE_API_KEY` — live activity search (falls back to seed data)
 - `UNSPLASH_ACCESS_KEY` — destination cover images
-- `EXCHANGE_RATE_API_KEY` — multi-currency expense conversion
 
 ---
 
-## Project Structure
+## Project structure
 
 ```
 traveloop/
-├── prisma/                    # schema, migrations, seed
-├── public/seed/               # static city + activity seed data
+├── prisma/                  schema, migrations, seed
+├── public/seed/             cities + activities + featured-cities JSON
 ├── src/
-│   ├── app/                   # Next.js App Router routes
-│   │   ├── (auth)/            # login, signup, password reset
-│   │   ├── (app)/             # authenticated pages
-│   │   ├── (public)/          # share/[slug]
-│   │   └── api/               # API routes
-│   ├── components/            # UI components (shadcn primitives + features)
+│   ├── app/
+│   │   ├── (auth)/          /login, /signup, /forgot-password, /reset-password
+│   │   ├── (app)/           authenticated pages — dashboard, trips, match, settings, admin, discover
+│   │   ├── (public)/share/  /share/[slug] read-only itineraries with OG image
+│   │   └── api/             auth, ai, blend SSE, cities/activities search, notifications
+│   ├── components/
+│   │   ├── ui/              shadcn primitives
+│   │   ├── trip/            TripCard, ItineraryTimeline / Calendar / Map, builder
+│   │   ├── ai/              AIGenerateDialog, AIStatusBanner
+│   │   ├── budget/          chart components
+│   │   ├── expenses/        members, balances, settle-up
+│   │   ├── todos/           todo CRUD + AI suggester
+│   │   ├── notes/           markdown editor + render
+│   │   ├── packing/         list + AI suggester
+│   │   ├── blend/           live SSE-driven Trip Blend room
+│   │   ├── match/           profile + compatibility cards
+│   │   ├── admin/           charts + user table
+│   │   └── shared/          empty state, notifications dropdown
 │   ├── lib/
-│   │   ├── ai/                # Ollama client, prompts, schemas
-│   │   ├── auth.ts            # NextAuth config
-│   │   ├── db.ts              # Prisma singleton
-│   │   ├── geocode.ts         # Nominatim wrapper
-│   │   ├── blend-bus.ts       # SSE event bus
-│   │   ├── splitwise.ts       # settlement algorithm
-│   │   └── reminders/         # cron-based reminder scheduler
-│   ├── server/actions/        # Next.js server actions
-│   └── types/                 # shared TypeScript types
-└── tests/                     # Vitest unit/integration + Playwright e2e
+│   │   ├── ai/              Ollama client, prompts (5.1–5.7), schemas
+│   │   ├── auth.ts          NextAuth v5 config
+│   │   ├── db.ts            Prisma singleton
+│   │   ├── geocode.ts       Nominatim wrapper, rate-limited, cached
+│   │   ├── blend-bus.ts     SSE event emitter singleton
+│   │   ├── splitwise.ts     settlement algorithm
+│   │   ├── currency.ts      exchange-rate-api wrapper, cached
+│   │   ├── budget.ts        per-trip budget computation
+│   │   └── reminders/       cron sweeper + init
+│   ├── server/
+│   │   ├── actions/         server actions per feature
+│   │   └── admin.ts         cached admin aggregations
+│   └── proxy.ts             Next 16 auth-gating middleware
+├── tests/unit/              vitest tests (splitwise)
+├── instrumentation.ts       starts the cron singleton on server boot
+├── scripts/promote-admin.ts pnpm admin:promote <email>
+└── package.json
 ```
 
 ---
@@ -177,45 +168,54 @@ traveloop/
 ## Scripts
 
 ```bash
-pnpm dev              # start dev server (Turbopack)
-pnpm build            # production build
-pnpm start            # run production build
-pnpm lint             # ESLint
-pnpm test             # Vitest
-pnpm test:e2e         # Playwright smoke tests
-pnpm prisma:studio    # open Prisma Studio
-pnpm seed             # seed the database with demo data
-pnpm admin:promote    # promote a user to admin by email
+pnpm dev               # start dev server (Turbopack)
+pnpm build             # production build
+pnpm start             # run production build
+pnpm lint              # ESLint
+pnpm test              # Vitest
+pnpm prisma:generate   # regenerate the Prisma client
+pnpm prisma:migrate    # run a migration
+pnpm prisma:studio     # open Prisma Studio
+pnpm seed              # seed demo accounts and trips
+pnpm admin:promote     # pnpm admin:promote <email> — flip a user to admin
 ```
 
 ---
 
-## Architecture Notes
+## Architecture notes
 
-- **Server-first.** Most routes are React Server Components. Client components are reserved for interactive surfaces (forms, drag-and-drop, real-time streams).
+- **Server-first.** Most routes are React Server Components. Client components are reserved for interactive surfaces (forms, drag-and-drop, real-time streams, charts).
 - **AI calls live server-side.** The Ollama URL never reaches the browser. All AI interactions go through `/api/ai/*` routes that validate input with Zod, call Ollama with schema-constrained JSON output, validate the response, and persist results.
-- **Real-time without external infra.** Trip Blend uses an in-process Node `EventEmitter` plus SSE. No Redis, no Pusher. Trade-off: single-instance only — for production-scale collaboration, swap the bus for Redis pub/sub.
-- **Geocoding is rate-limited.** Nominatim allows 1 req/sec. The geocoding wrapper queues requests sequentially and caches results in a `GeocodeCache` table for 30 days.
-- **Reminders are in-process.** node-cron runs every 5 minutes inside the Next.js server process. For a multi-instance deployment, switch to a worker queue (BullMQ + Redis).
+- **Real-time without external infra.** Trip Blend uses an in-process Node `EventEmitter` plus SSE (`/api/blend/[groupId]/stream`). For multi-instance production, swap `src/lib/blend-bus.ts` for Redis pub/sub.
+- **Geocoding is rate-limited.** Nominatim allows 1 req/sec. The wrapper queues requests sequentially and caches results in a `GeocodeCache` table for 30 days.
+- **Reminders are in-process.** node-cron runs every 5 minutes inside the Next.js server and sweeps due `Reminder` rows into in-app `Notification` rows. For multi-instance deployments, switch to a worker queue (BullMQ + Redis).
+- **Currency conversion is opt-in.** With `EXCHANGE_RATE_API_KEY` set, expenses in non-trip currencies are converted at the latest rate (cached 24h). Without it, amounts are stored as-is and the UI flags that conversion is off.
+- **Compatibility scores are cached symmetrically.** When two travellers see each other on `/match`, the score is computed once per pair and stored in `MatchScore` keyed by sorted user-id.
 
 ---
 
-## Demo Flow
+## Demo flow (3 minutes)
 
-1. Signup → take the personality quiz
-2. From the dashboard, click **Plan with AI** → enter `Vietnam, 10 days, $1500, Foodie`
-3. Watch the AI generate a full multi-city itinerary with map, activities, and budget
-4. Open **Budget** to see cost breakdowns
-5. Mark Hanoi as compromised → review three AI-suggested alternatives → swap
-6. Open the trip in two browser windows as different users → enable **Trip Blend** → propose and vote on cities → watch the itinerary re-blend live
-7. Add an expense in **Expenses** → settle up with minimum transactions
-8. Toggle **Public** on the trip → open the share link in incognito → copy the trip to a new account
+1. Sign in as `alice@traveloop.dev` / `Password1`.
+2. Open the **Vietnam street-food run** trip — switch between Timeline, Calendar, Map (real Nominatim coordinates).
+3. Open **Budget** — pie / per-day / per-stop breakdown.
+4. Visit the **Patagonia** trip as `bob@traveloop.dev` — open **Blend**: candidates and votes are pre-seeded; if Ollama is running, watch the live itinerary regenerate when you cast a new vote.
+5. Open **Expenses** on Patagonia — three members, an unsettled accommodation expense, suggested transfers.
+6. Toggle **Italy** public from `carla@traveloop.dev` (already public in the seed) — paste the share URL into an incognito window for the read-only view.
+7. Sign in as `admin@traveloop.dev` — open `/admin` for KPI strip, trips-over-time, top destinations, retention cohort, user table with promote / ban / CSV export.
 
 ---
 
-## Contributing
+## Deployment to Vercel
 
-This is currently a personal project. Issues and discussion are welcome.
+1. Push this repo to GitHub.
+2. **New Project** in Vercel → import the repo.
+3. Set environment variables in Vercel:
+   - `DATABASE_URL` — point at managed Postgres (Vercel Postgres / Neon / Supabase). Update `prisma/schema.prisma` `provider = "postgresql"` and re-run `pnpm prisma migrate deploy` against the prod URL.
+   - `NEXTAUTH_SECRET`, `NEXTAUTH_URL` (the Vercel deployment URL), `OLLAMA_BASE_URL` (point at a remote Ollama endpoint or a hosted equivalent), `OLLAMA_MODEL=qwen3.5`.
+   - Optional integrations as listed above.
+4. Deploy. The build output supports the Node runtime; `instrumentation.ts` starts the in-process reminder cron on server boot.
+5. **Limitation**: Trip Blend's SSE event bus is in-process. On Vercel's multi-instance deployment, two members on different instances won't see each other's events. Swap `src/lib/blend-bus.ts` for a Redis pub/sub implementation before scaling out.
 
 ---
 
