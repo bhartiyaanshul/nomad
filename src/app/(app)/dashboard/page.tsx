@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import {
   ArrowRight,
   Compass,
-  Plus,
   Sparkles,
   Wallet,
   Map as MapIcon,
@@ -17,7 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { TripCard } from "@/components/trip/trip-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PersonalityQuiz } from "@/components/onboarding/personality-quiz";
-import { AIGenerateDialog } from "@/components/ai/ai-generate-dialog";
+import { DashboardHeaderActions } from "@/components/dashboard/dashboard-header-actions";
 import { AIStatusBanner } from "@/components/ai/ai-status-banner";
 import { formatCurrency } from "@/lib/format";
 import featuredCities from "../../../../public/seed/featured-cities.json";
@@ -95,30 +94,10 @@ export default async function DashboardPage() {
             </p>
           ) : null}
         </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline" className="gap-2">
-            <Link href="/trips">
-              <MapIcon className="size-4" />
-              All trips
-            </Link>
-          </Button>
-          <AIGenerateDialog
-            defaultPersonality={user.personality}
-            defaultCurrency={user.currency}
-            trigger={
-              <Button variant="outline" className="gap-2">
-                <Sparkles className="size-4" />
-                Plan with AI
-              </Button>
-            }
-          />
-          <Button asChild className="gap-2">
-            <Link href="/trips/new">
-              <Plus className="size-4" />
-              Plan a new trip
-            </Link>
-          </Button>
-        </div>
+        <DashboardHeaderActions
+          defaultPersonality={user.personality}
+          defaultCurrency={user.currency}
+        />
       </div>
 
       <div className="mt-8">
@@ -145,7 +124,7 @@ export default async function DashboardPage() {
             <EmptyState
               icon={Compass}
               title="Nothing on the calendar yet"
-              description="Start with a manual draft, or in Phase 3 the AI generator will plan a multi-city trip from a few sentences."
+              description="Start with a manual draft, or generate one with AI when Ollama is running."
               action={
                 <Button asChild>
                   <Link href="/trips/new">Plan a new trip</Link>
@@ -164,23 +143,23 @@ export default async function DashboardPage() {
 
       <div className="mt-14 grid gap-6 lg:grid-cols-3">
         <KpiCard
-          icon={MapIcon}
           label="Active trips"
           value={`${totalBudgetAgg._count ?? 0}`}
+          tone="map"
         />
         <KpiCard
-          icon={Wallet}
           label="Planned spend"
           value={
             plannedSpend > 0
               ? formatCurrency(plannedSpend, user.currency)
               : "Not set"
           }
+          tone="wallet"
         />
         <KpiCard
-          icon={Sparkles}
           label="AI itinerary"
           value="Plan in seconds"
+          tone="sparkles"
         />
       </div>
 
@@ -237,14 +216,16 @@ function SectionHeader({
   );
 }
 
+type KpiTone = "map" | "wallet" | "sparkles";
+
 function KpiCard({
-  icon: Icon,
   label,
   value,
+  tone,
 }: {
-  icon: typeof Compass;
   label: string;
   value: string;
+  tone: KpiTone;
 }) {
   return (
     <Card className="border-border/70 shadow-none">
@@ -256,7 +237,13 @@ function KpiCard({
           <p className="font-display mt-2 text-2xl tracking-tight">{value}</p>
         </div>
         <div className="bg-accent text-accent-foreground rounded-md p-2">
-          <Icon className="size-5" />
+          {tone === "map" ? (
+            <MapIcon className="size-5" />
+          ) : tone === "wallet" ? (
+            <Wallet className="size-5" />
+          ) : (
+            <Sparkles className="size-5" />
+          )}
         </div>
       </CardContent>
     </Card>
