@@ -19,6 +19,7 @@ import {
   type ItineraryOutput,
 } from "@/lib/ai/schemas/itinerary";
 import { geocodeCity } from "@/lib/geocode";
+import { seedDefaultTodosFor } from "@/server/actions/todos";
 
 export const runtime = "nodejs";
 // AI calls take many seconds; bump default timeout.
@@ -220,6 +221,25 @@ export async function POST(req: Request) {
 
     return trip;
   });
+
+  // Seed the standard prep checklist with auto-scheduled reminders.
+  // Heuristic: international if any stop's country is non-US; we don't
+  // store the user's home country, so default to international (the most
+  // common AI-generated trip is multi-country) and let the user delete
+  // anything that doesn't apply.
+  const distinctCountries = new Set(
+    stopsWithCoords.map((s) => s.country.trim()),
+  );
+  try {
+    await seedDefaultTodosFor({
+      tripId: created.id,
+      ownerId: session.user.id,
+      isInternational: distinctCountries.size > 0,
+      tripStart: startDate,
+    });
+  } catch (err) {
+    console.warn("[ai/itinerary] failed to seed default todos", err);
+  }
 
   return NextResponse.json({
     tripId: created.id,

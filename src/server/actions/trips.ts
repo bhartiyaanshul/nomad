@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { createTripSchema, updateTripSchema } from "@/lib/validation/trip";
+import { seedDefaultTodosFor } from "./todos";
 import { fail, ok, type ActionResult } from "./result";
 
 async function requireUserId() {
@@ -68,6 +69,21 @@ export async function createTripAction(
   await db.tripMember.create({
     data: { tripId: trip.id, userId, role: "owner" },
   });
+
+  // Seed the standard prep checklist (visa, passport, vaccinations, insurance,
+  // currency, online check-in, etc.). Reminders are auto-scheduled.
+  // Defaults to the international set on creation (no stops yet) — the
+  // owner can delete anything that doesn't apply.
+  try {
+    await seedDefaultTodosFor({
+      tripId: trip.id,
+      ownerId: userId,
+      isInternational: true,
+      tripStart: trip.startDate,
+    });
+  } catch (err) {
+    console.warn("[trips:create] failed to seed default todos", err);
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/trips");

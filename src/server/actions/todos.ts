@@ -13,6 +13,10 @@ import {
 } from "@/lib/ai/ollama";
 import { TODOS_SYSTEM, renderTodosUser } from "@/lib/ai/prompts/todos";
 import { todosJsonSchema, todosSchema } from "@/lib/ai/schemas/todos";
+import {
+  resolveDefaultTodos,
+  type TodoPriority,
+} from "@/lib/default-trip-todos";
 import { fail, ok, type ActionResult } from "./result";
 
 const PRIORITY_OFFSETS: Record<
@@ -31,6 +35,105 @@ const PRIORITY_OFFSETS: Record<
   ],
   low: [{ amount: 1, unit: "days" }],
 };
+
+/**
+ * Seed the default trip-prep checklist for a trip. Idempotent — checks
+ * existing todo content (case-insensitive) and skips duplicates so re-running
+ * for an already-seeded trip is safe. Reminders are auto-scheduled by
+ * priority preset.
+ */
+export async function seedDefaultTodosFor(args: {
+  tripId: string;
+  ownerId: string;
+  isInternational: boolean;
+  tripStart: Date;
+}): Promise<{ added: number; skipped: number }> {
+  const resolved = resolveDefaultTodos({
+    tripStart: args.tripStart,
+    isInternational: args.isInternational,
+  });
+
+  const existing = await db.todo.findMany({
+    where: { tripId: args.tripId, userId: args.ownerId },
+    select: { content: true },
+  });
+  const existingSet = new Set(
+    existing.map((e) => e.content.trim().toLowerCase()),
+  );
+
+  let added = 0;
+  let skipped = 0;
+  for (const t of resolved) {
+    if (existingSet.has(t.content.trim().toLowerCase())) {
+      skipped++;
+      continue;
+    }
+    await db.$transaction(async (tx) => {
+      const todo = await tx.todo.create({
+        data: {
+          tripId: args.tripId,
+          userId: args.ownerId,
+          content: t.content,
+          category: t.category,
+          dueAt: t.dueAt,
+          priority: t.priority,
+          aiGenerated: false,
+          aiSuggestedReason: t.reason,
+        },
+      });
+      const offsets = PRIORITY_OFFSETS[t.priority as TodoPriority];
+      if (offsets.length > 0) {
+        await tx.reminder.createMany({
+          data: offsets.map((o) => ({
+            todoId: todo.id,
+            scheduledAt: offsetToDate(t.dueAt, o),
+            channel: "in-app",
+          })),
+        });
+      }
+    });
+    added++;
+  }
+
+  return { added, skipped };
+}
+
+export async function seedDefaultTodosAction(
+  tripId: string,
+): Promise<ActionResult<{ added: number; skipped: number }>> {
+  const session = await auth();
+  if (!session?.user?.id) return fail("Unauthenticated");
+
+  const trip = await db.trip.findFirst({
+    where: { id: tripId, ownerId: session.user.id },
+    select: {
+      id: true,
+      startDate: true,
+      stops: { select: { country: true } },
+    },
+  });
+  if (!trip) return fail("Trip not found");
+
+  // Heuristic: if any two stops have different countries, or if there's
+  // at least one country and we don't know the user's home country, treat
+  // as international. Defaults to international when no stops yet (shows
+  // the full set; user deletes what doesn't apply).
+  const distinctCountries = new Set(trip.stops.map((s) => s.country));
+  const isInternational =
+    distinctCountries.size === 0 || distinctCountries.size > 1
+      ? true
+      : true; // conservatively show all; users can delete domestic-only
+
+  const result = await seedDefaultTodosFor({
+    tripId: trip.id,
+    ownerId: session.user.id,
+    isInternational,
+    tripStart: trip.startDate,
+  });
+
+  revalidatePath(`/trips/${tripId}/todos`);
+  return ok(result);
+}
 
 function offsetToDate(
   due: Date,

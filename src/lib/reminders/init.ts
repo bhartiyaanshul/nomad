@@ -25,4 +25,12 @@ export function startReminderCron(): void {
   );
   globalForCron.traveloopCron = task;
   console.info("[reminders] cron started — every 5 minutes UTC");
+
+  // Kick a sweep on boot so any past-due reminders get delivered without
+  // waiting up to 5 minutes for the next tick.
+  sweepReminders()
+    .then((n) => {
+      if (n > 0) console.info(`[reminders] initial sweep delivered ${n}`);
+    })
+    .catch((err) => console.error("[reminders] initial sweep failed", err));
 }

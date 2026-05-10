@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AddTodoForm } from "@/components/todos/add-todo-form";
 import { TodoItem } from "@/components/todos/todo-item";
 import { SuggestTodosButton } from "@/components/todos/suggest-todos-button";
+import { SeedDefaultsButton } from "@/components/todos/seed-defaults-button";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListChecks } from "lucide-react";
 
@@ -56,12 +57,18 @@ export default async function TodosPage({ params }: TodosPageProps) {
             Todos
           </h1>
           <p className="text-muted-foreground mt-2 max-w-xl text-sm leading-relaxed">
-            Add a task with a due date and we&apos;ll schedule reminders
-            automatically. Use the AI suggestion button for visa, vaccination,
-            and prep checklists tailored to your destinations.
+            Standard prep todos (passport, visa, vaccinations, insurance,
+            currency, online check-in) are seeded with auto-scheduled
+            reminders. Use the AI button for destination-specific extras.
           </p>
         </div>
-        <SuggestTodosButton tripId={trip.id} />
+        <div className="flex flex-wrap items-center gap-2">
+          <SeedDefaultsButton
+            tripId={trip.id}
+            hasExisting={todos.length > 0}
+          />
+          <SuggestTodosButton tripId={trip.id} />
+        </div>
       </div>
 
       <Card className="border-border/70 mt-8 shadow-none">
