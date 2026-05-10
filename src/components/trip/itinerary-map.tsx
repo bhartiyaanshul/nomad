@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import {
   MapContainer,
@@ -203,24 +203,7 @@ export function ItineraryMap({ stops }: ItineraryMapProps) {
           }}
         />
 
-        {placed.slice(0, -1).map((from, i) => {
-          const to = placed[i + 1];
-          const mode = inferTransportMode(
-            from.transportMode,
-            from.latitude,
-            from.longitude,
-            to.latitude,
-            to.longitude,
-          );
-          return (
-            <TransportTraveller
-              key={`${from.id}-${to.id}`}
-              from={[from.latitude, from.longitude]}
-              to={[to.latitude, to.longitude]}
-              mode={mode}
-            />
-          );
-        })}
+        {placed.length > 1 ? <RouteTraveller stops={placed} /> : null}
 
         {placed.map((stop, idx) => (
           <Marker
@@ -257,56 +240,97 @@ export function ItineraryMap({ stops }: ItineraryMapProps) {
 }
 
 /**
- * Animates a transport-mode icon along a single segment using
- * requestAnimationFrame. Updates the marker's position imperatively via
- * Leaflet's setLatLng so React doesn't re-reconcile every frame.
+ * One traveller that walks the entire route, segment by segment. Swaps
+ * the mode pictogram (and the rotation, for flights) when crossing into
+ * a new leg. Updates the marker's position imperatively via Leaflet's
+ * setLatLng on requestAnimationFrame so React doesn't reconcile each
+ * frame.
  *
- * The icon does a 6-second sweep from `from` → `to` then jumps back, so
- * the animation reads like a vehicle leaving the previous stop and
- * arriving at the next one.
+ * Pacing: 5s per leg + 600ms hover at each stop. Total cycle scales
+ * naturally with the trip length — short trips loop quickly, long trips
+ * read like a slow journey.
  */
-function TransportTraveller({
-  from,
-  to,
-  mode,
-}: {
-  from: [number, number];
-  to: [number, number];
-  mode: TransportMode;
-}) {
+function RouteTraveller({ stops }: { stops: PlacedStop[] }) {
   const markerRef = useRef<L.Marker | null>(null);
-  const icon = useMemo(
-    () => buildTransportIcon(mode, bearing(from[0], from[1], to[0], to[1])),
-    [mode, from, to],
-  );
+  const segments = useMemo(() => {
+    const out: Array<{
+      from: [number, number];
+      to: [number, number];
+      mode: TransportMode;
+      bearingDeg: number;
+    }> = [];
+    for (let i = 0; i < stops.length - 1; i++) {
+      const a = stops[i];
+      const b = stops[i + 1];
+      const mode = inferTransportMode(
+        a.transportMode,
+        a.latitude,
+        a.longitude,
+        b.latitude,
+        b.longitude,
+      );
+      out.push({
+        from: [a.latitude, a.longitude],
+        to: [b.latitude, b.longitude],
+        mode,
+        bearingDeg: bearing(a.latitude, a.longitude, b.latitude, b.longitude),
+      });
+    }
+    return out;
+  }, [stops]);
 
+  // Track which segment is "active" so the icon (mode + rotation) can
+  // re-render only when crossing a boundary, not every frame.
+  const [activeSegment, setActiveSegment] = useState(0);
+
+  // requestAnimationFrame loop — drives both the marker position and the
+  // active-segment state. Position updates bypass React via setLatLng.
   useEffect(() => {
+    if (segments.length === 0) return;
+    const PER_SEGMENT = 5_000; // ms travelling
+    const PAUSE = 600; // ms paused at each arrival
+    const PER_CYCLE = PER_SEGMENT + PAUSE;
+    const TOTAL = PER_CYCLE * segments.length;
+
     let raf = 0;
     const start = performance.now();
-    const duration = 6_000; // ms per traversal
-    const pause = 600; // pause at the end before restarting
+    let lastSeg = -1;
 
     function tick(now: number) {
-      const elapsed = (now - start) % (duration + pause);
-      const t = Math.min(1, elapsed / duration);
-      const lat = from[0] + (to[0] - from[0]) * t;
-      const lng = from[1] + (to[1] - from[1]) * t;
+      const elapsed = (now - start) % TOTAL;
+      const segIdx = Math.floor(elapsed / PER_CYCLE);
+      const within = elapsed - segIdx * PER_CYCLE;
+      const seg = segments[segIdx];
+      // Travel from 0→1 over PER_SEGMENT then hold at 1 for PAUSE.
+      const t = within < PER_SEGMENT ? within / PER_SEGMENT : 1;
+      const lat = seg.from[0] + (seg.to[0] - seg.from[0]) * t;
+      const lng = seg.from[1] + (seg.to[1] - seg.from[1]) * t;
       markerRef.current?.setLatLng([lat, lng]);
+
+      if (segIdx !== lastSeg) {
+        lastSeg = segIdx;
+        setActiveSegment(segIdx);
+      }
       raf = requestAnimationFrame(tick);
     }
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [from, to]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [segments.length, ...segments.map((s) => s.from.join(",") + s.to.join(","))]);
+
+  const seg = segments[activeSegment] ?? segments[0];
+  const icon = useMemo(
+    () => buildTransportIcon(seg.mode, seg.bearingDeg),
+    [seg.mode, seg.bearingDeg],
+  );
 
   return (
     <Marker
       ref={(m) => {
         markerRef.current = m;
       }}
-      position={from}
+      position={seg.from}
       icon={icon}
-      // Don't intercept clicks — vehicles are decorative. Pin markers
-      // remain interactive for popups.
       interactive={false}
       keyboard={false}
     />
