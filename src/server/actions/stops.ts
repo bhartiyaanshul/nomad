@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { geocodeCity } from "@/lib/geocode";
 import {
   createStopSchema,
   tripDurationDays,
@@ -81,11 +82,18 @@ export async function createStopAction(
     select: { orderIndex: true },
   });
 
+  // Geocode before insert so the new stop drops onto the map immediately.
+  // geocodeCity is rate-limited and cached, so this is fast for repeat
+  // queries and tolerable for one-shot inserts.
+  const coords = await geocodeCity(parsed.data.city, parsed.data.country);
+
   const stop = await db.stop.create({
     data: {
       tripId,
       city: parsed.data.city,
       country: parsed.data.country,
+      latitude: coords?.latitude ?? null,
+      longitude: coords?.longitude ?? null,
       arrivalDay: parsed.data.arrivalDay,
       departureDay: parsed.data.departureDay,
       orderIndex: (last?.orderIndex ?? -1) + 1,
@@ -113,7 +121,17 @@ export async function updateStopAction(
   const userId = await requireUserId();
   const stop = await db.stop.findUnique({
     where: { id: stopId },
-    select: { id: true, tripId: true, trip: { select: { ownerId: true, startDate: true, endDate: true } } },
+    select: {
+      id: true,
+      tripId: true,
+      city: true,
+      country: true,
+      latitude: true,
+      longitude: true,
+      trip: {
+        select: { ownerId: true, startDate: true, endDate: true },
+      },
+    },
   });
   if (!stop || stop.trip.ownerId !== userId) throw new Error("Not found");
 
@@ -137,12 +155,30 @@ export async function updateStopAction(
     return fail("Check the stop details", parsed.error.flatten().fieldErrors);
   }
 
+  // Re-geocode whenever city or country changes (or coordinates are missing).
+  const cityChanged =
+    parsed.data.city !== undefined && parsed.data.city !== stop.city;
+  const countryChanged =
+    parsed.data.country !== undefined && parsed.data.country !== stop.country;
+  const noCoords = stop.latitude === null || stop.longitude === null;
+
+  let coords: { latitude: number; longitude: number } | null = null;
+  if (cityChanged || countryChanged || noCoords) {
+    coords = await geocodeCity(
+      parsed.data.city ?? stop.city,
+      parsed.data.country ?? stop.country,
+    );
+  }
+
   await db.stop.update({
     where: { id: stopId },
     data: {
       ...(parsed.data.city !== undefined ? { city: parsed.data.city } : {}),
       ...(parsed.data.country !== undefined
         ? { country: parsed.data.country }
+        : {}),
+      ...(coords
+        ? { latitude: coords.latitude, longitude: coords.longitude }
         : {}),
       ...(parsed.data.arrivalDay !== undefined
         ? { arrivalDay: parsed.data.arrivalDay }

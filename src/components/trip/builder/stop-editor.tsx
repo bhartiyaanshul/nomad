@@ -1,10 +1,14 @@
 "use client";
 
-import { useActionState, useEffect, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Input } from "@/components/ui/input";
+import {
+  CityCombobox,
+  CountryCombobox,
+} from "./city-country-fields";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -52,6 +56,16 @@ export function StopEditor({ stop, totalDays, isLast, currency }: StopEditorProp
   const [deletePending, startDelete] = useTransition();
   const [regenPending, startRegen] = useTransition();
 
+  const [city, setCity] = useState(stop.city);
+  const [country, setCountry] = useState(stop.country);
+  // Reset when switching between stops (the form has key={stop.id} too).
+  const [stopId, setStopId] = useState(stop.id);
+  if (stopId !== stop.id) {
+    setStopId(stop.id);
+    setCity(stop.city);
+    setCountry(stop.country);
+  }
+
   useEffect(() => {
     if (state?.ok) toast.success("Stop saved");
   }, [state]);
@@ -70,11 +84,16 @@ export function StopEditor({ stop, totalDays, isLast, currency }: StopEditorProp
             required
             errors={fieldErrors?.city}
           >
-            <Input
+            <CityCombobox
               id="city"
               name="city"
-              defaultValue={stop.city}
               required
+              value={city}
+              onValueChange={setCity}
+              onCityPicked={({ city: c, country: co }) => {
+                setCity(c);
+                setCountry(co);
+              }}
             />
           </Field>
           <Field
@@ -83,11 +102,12 @@ export function StopEditor({ stop, totalDays, isLast, currency }: StopEditorProp
             required
             errors={fieldErrors?.country}
           >
-            <Input
+            <CountryCombobox
               id="country"
               name="country"
-              defaultValue={stop.country}
               required
+              value={country}
+              onValueChange={setCountry}
             />
           </Field>
         </div>

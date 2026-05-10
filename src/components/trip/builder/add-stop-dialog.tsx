@@ -1,11 +1,14 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Globe, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { CitySearchDialog } from "./city-search-dialog";
-import { CityCountryDatalists } from "./city-country-datalists";
+import {
+  CityCombobox,
+  CountryCombobox,
+} from "./city-country-fields";
 
 import {
   Dialog,
@@ -49,14 +52,16 @@ export function AddStopDialog({
   const action = createStopAction.bind(null, tripId);
   const [state, formAction] = useActionState(action, initial);
   const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
-  const cityRef = useRef<HTMLInputElement>(null);
-  const countryRef = useRef<HTMLInputElement>(null);
+  const [city, setCity] = useState("");
+  const [country, setCountry] = useState("");
 
   useEffect(() => {
     if (state?.ok) {
       toast.success("Stop added");
       // eslint-disable-next-line react-hooks/set-state-in-effect -- close after server action
       setOpen(false);
+      setCity("");
+      setCountry("");
     }
   }, [state]);
 
@@ -85,12 +90,12 @@ export function AddStopDialog({
               trigger={
                 <Button type="button" variant="outline" size="sm" className="gap-2">
                   <Globe className="size-4" />
-                  Pick from list
+                  Browse all cities
                 </Button>
               }
-              onPick={(city) => {
-                if (cityRef.current) cityRef.current.value = city.name;
-                if (countryRef.current) countryRef.current.value = city.country;
+              onPick={(picked) => {
+                setCity(picked.name);
+                setCountry(picked.country);
               }}
             />
           </div>
@@ -101,14 +106,17 @@ export function AddStopDialog({
               required
               errors={fieldErrors?.city}
             >
-              <Input
-                ref={cityRef}
+              <CityCombobox
                 id="add-city"
                 name="city"
                 required
+                value={city}
+                onValueChange={setCity}
+                onCityPicked={({ city: c, country: co }) => {
+                  setCity(c);
+                  setCountry(co);
+                }}
                 placeholder="Hanoi"
-                list="addstop-city-list"
-                autoComplete="off"
               />
             </Field>
             <Field
@@ -117,18 +125,13 @@ export function AddStopDialog({
               required
               errors={fieldErrors?.country}
             >
-              <Input
-                ref={countryRef}
+              <CountryCombobox
                 id="add-country"
                 name="country"
                 required
+                value={country}
+                onValueChange={setCountry}
                 placeholder="Vietnam"
-                list="addstop-country-list"
-                autoComplete="off"
-              />
-              <CityCountryDatalists
-                cityListId="addstop-city-list"
-                countryListId="addstop-country-list"
               />
             </Field>
           </div>
