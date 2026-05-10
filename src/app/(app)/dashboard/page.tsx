@@ -17,6 +17,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { TripCard } from "@/components/trip/trip-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PersonalityQuiz } from "@/components/onboarding/personality-quiz";
+import { AIGenerateDialog } from "@/components/ai/ai-generate-dialog";
+import { AIStatusBanner } from "@/components/ai/ai-status-banner";
 import { formatCurrency } from "@/lib/format";
 import featuredCities from "../../../../public/seed/featured-cities.json";
 
@@ -100,6 +102,16 @@ export default async function DashboardPage() {
               All trips
             </Link>
           </Button>
+          <AIGenerateDialog
+            defaultPersonality={user.personality}
+            defaultCurrency={user.currency}
+            trigger={
+              <Button variant="outline" className="gap-2">
+                <Sparkles className="size-4" />
+                Plan with AI
+              </Button>
+            }
+          />
           <Button asChild className="gap-2">
             <Link href="/trips/new">
               <Plus className="size-4" />
@@ -107,6 +119,10 @@ export default async function DashboardPage() {
             </Link>
           </Button>
         </div>
+      </div>
+
+      <div className="mt-8">
+        <AIStatusBanner />
       </div>
 
       <section className="mt-12">
@@ -164,7 +180,7 @@ export default async function DashboardPage() {
         <KpiCard
           icon={Sparkles}
           label="AI itinerary"
-          value="Available in Phase 3"
+          value="Plan in seconds"
         />
       </div>
 

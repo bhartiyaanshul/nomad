@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Map as MapIcon, Plus } from "lucide-react";
+import { Map as MapIcon, Plus, Sparkles } from "lucide-react";
 import { isAfter, isBefore } from "date-fns";
 
 import { auth } from "@/lib/auth";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { TripCard } from "@/components/trip/trip-card";
 import { TripsFilterBar } from "@/components/trip/trips-filter-bar";
 import { EmptyState } from "@/components/shared/empty-state";
+import { AIGenerateDialog } from "@/components/ai/ai-generate-dialog";
 
 export const metadata = { title: "Your trips" };
 
@@ -28,6 +29,11 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
   const q = params.q?.trim();
   const status = params.status ?? "all";
   const sort = params.sort ?? "date-desc";
+
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { currency: true, personality: true },
+  });
 
   const orderBy =
     sort === "name"
@@ -72,12 +78,24 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
             All trips
           </h1>
         </div>
-        <Button asChild className="gap-2">
-          <Link href="/trips/new">
-            <Plus className="size-4" />
-            Plan a new trip
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <AIGenerateDialog
+            defaultPersonality={user?.personality}
+            defaultCurrency={user?.currency ?? "USD"}
+            trigger={
+              <Button variant="outline" className="gap-2">
+                <Sparkles className="size-4" />
+                Plan with AI
+              </Button>
+            }
+          />
+          <Button asChild className="gap-2">
+            <Link href="/trips/new">
+              <Plus className="size-4" />
+              Plan a new trip
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="mt-8">

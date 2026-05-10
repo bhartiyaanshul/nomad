@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useTransition } from "react";
-import { Trash2 } from "lucide-react";
+import { Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ACCOM_TYPES, TRANSPORT_MODES } from "@/lib/validation/trip";
 import { deleteStopAction, updateStopAction } from "@/server/actions/stops";
+import { regenerateStopAction } from "@/server/actions/ai-regenerate-stop";
 import type { ActionResult } from "@/server/actions/result";
 
 import type { BuilderStop } from "./types";
@@ -48,6 +49,7 @@ export function StopEditor({ stop, totalDays, isLast, currency }: StopEditorProp
   const [state, formAction] = useActionState(action, initial);
   const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
   const [deletePending, startDelete] = useTransition();
+  const [regenPending, startRegen] = useTransition();
 
   useEffect(() => {
     if (state?.ok) toast.success("Stop saved");
@@ -312,7 +314,39 @@ export function StopEditor({ stop, totalDays, isLast, currency }: StopEditorProp
         </div>
       </form>
 
-      <ActivitiesPanel stop={stop} currency={currency} />
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h3 className="font-display text-base tracking-tight">Activities</h3>
+            <p className="text-muted-foreground text-xs">
+              Use AI to refresh this stop&apos;s plan, or add manually.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={regenPending}
+            onClick={() =>
+              startRegen(async () => {
+                const result = await regenerateStopAction(stop.id);
+                if (result.ok) {
+                  toast.success(
+                    `Replaced with ${result.data.replaced} activities`,
+                  );
+                } else {
+                  toast.error(result.error);
+                }
+              })
+            }
+            className="gap-2"
+          >
+            <Sparkles className="size-4" />
+            {regenPending ? "Regenerating" : "Regenerate with AI"}
+          </Button>
+        </div>
+        <ActivitiesPanel stop={stop} currency={currency} />
+      </div>
     </div>
   );
 }

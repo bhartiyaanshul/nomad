@@ -9,7 +9,9 @@ const PUBLIC_PATHS = [
   "/reset-password",
 ];
 
-const PUBLIC_PREFIXES = ["/share/", "/safety", "/api/auth"];
+// API routes do their own auth check and return JSON. Public marketing /
+// auth-flow paths are listed in PUBLIC_PATHS; everything else is gated.
+const PUBLIC_PREFIXES = ["/share/", "/safety", "/api/"];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
