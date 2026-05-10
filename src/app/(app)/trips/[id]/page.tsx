@@ -51,6 +51,7 @@ export default async function TripPage({ params, searchParams }: TripPageProps) 
           summary: true,
           latitude: true,
           longitude: true,
+          transportMode: true,
           activities: {
             where: { archived: false },
             select: {
@@ -137,6 +138,7 @@ export default async function TripPage({ params, searchParams }: TripPageProps) 
                 orderIndex: s.orderIndex,
                 latitude: s.latitude,
                 longitude: s.longitude,
+                transportMode: s.transportMode,
                 activitiesCount: s.activities.length,
               }))}
             />

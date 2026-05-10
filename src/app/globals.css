@@ -246,6 +246,51 @@
   color: var(--color-muted-foreground);
 }
 
+/* Animate the dashed route polyline so dashes flow from start to end —
+   reads like motion along the path. */
+.traveloop-route {
+  stroke-dasharray: 8 6;
+  animation: traveloop-route-flow 1.4s linear infinite;
+}
+
+@keyframes traveloop-route-flow {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+
+/* Animated transport icon that travels along each segment. The wrapper
+   has no Leaflet padding/border so we place a small framed circle inside
+   that holds the per-mode glyph. */
+.traveloop-vehicle-wrap {
+  pointer-events: none;
+  background: transparent !important;
+  border: none !important;
+}
+
+.traveloop-vehicle {
+  width: 28px;
+  height: 28px;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  border: 2px solid var(--color-background);
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.22),
+    0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform 200ms ease;
+}
+
+.traveloop-vehicle svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Print: hide chrome, expand the trip view onto the page. */
+
 /* Print: hide chrome, expand the trip view onto the page. */
 @media print {
   body {
