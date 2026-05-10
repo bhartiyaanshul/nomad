@@ -1,8 +1,10 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Compass, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+
+import { ActivitySearchDialog } from "./activity-search-dialog";
 
 import {
   Dialog,
@@ -58,11 +60,25 @@ export function ActivitiesPanel({ stop, currency }: ActivitiesPanelProps) {
             {stop.activities.length} planned
           </p>
         </div>
-        <AddActivityDialog
-          stopId={stop.id}
-          arrivalDay={stop.arrivalDay}
-          departureDay={stop.departureDay}
-        />
+        <div className="flex items-center gap-2">
+          <ActivitySearchDialog
+            stopId={stop.id}
+            arrivalDay={stop.arrivalDay}
+            departureDay={stop.departureDay}
+            currency={currency}
+            trigger={
+              <Button size="sm" variant="ghost" className="gap-2">
+                <Compass className="size-4" />
+                Browse
+              </Button>
+            }
+          />
+          <AddActivityDialog
+            stopId={stop.id}
+            arrivalDay={stop.arrivalDay}
+            departureDay={stop.departureDay}
+          />
+        </div>
       </header>
 
       <div className="p-5">

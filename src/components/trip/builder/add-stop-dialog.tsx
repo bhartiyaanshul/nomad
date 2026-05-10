@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { Globe, Plus } from "lucide-react";
 import { toast } from "sonner";
+
+import { CitySearchDialog } from "./city-search-dialog";
 
 import {
   Dialog,
@@ -46,6 +48,8 @@ export function AddStopDialog({
   const action = createStopAction.bind(null, tripId);
   const [state, formAction] = useActionState(action, initial);
   const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
+  const cityRef = useRef<HTMLInputElement>(null);
+  const countryRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (state?.ok) {
@@ -75,6 +79,20 @@ export function AddStopDialog({
         </DialogHeader>
 
         <form action={formAction} className="flex flex-col gap-5">
+          <div className="flex justify-end">
+            <CitySearchDialog
+              trigger={
+                <Button type="button" variant="outline" size="sm" className="gap-2">
+                  <Globe className="size-4" />
+                  Pick from list
+                </Button>
+              }
+              onPick={(city) => {
+                if (cityRef.current) cityRef.current.value = city.name;
+                if (countryRef.current) countryRef.current.value = city.country;
+              }}
+            />
+          </div>
           <div className="grid gap-5 sm:grid-cols-2">
             <Field
               id="add-city"
@@ -82,7 +100,13 @@ export function AddStopDialog({
               required
               errors={fieldErrors?.city}
             >
-              <Input id="add-city" name="city" required placeholder="Hanoi" />
+              <Input
+                ref={cityRef}
+                id="add-city"
+                name="city"
+                required
+                placeholder="Hanoi"
+              />
             </Field>
             <Field
               id="add-country"
@@ -91,6 +115,7 @@ export function AddStopDialog({
               errors={fieldErrors?.country}
             >
               <Input
+                ref={countryRef}
                 id="add-country"
                 name="country"
                 required

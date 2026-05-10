@@ -1,0 +1,50 @@
+[
+  { "id": "food-market-walk", "name": "Local food market walk", "category": "food", "estimatedCost": 15, "estimatedDurationHours": 2, "description": "Sample regional specialties at the city's main produce and street-food market." },
+  { "id": "food-cooking-class", "name": "Hands-on cooking class", "category": "food", "estimatedCost": 60, "estimatedDurationHours": 4, "description": "Shop the market, cook a regional menu with a local chef, eat your work." },
+  { "id": "food-supper-club", "name": "Neighbourhood supper club", "category": "food", "estimatedCost": 50, "estimatedDurationHours": 3, "description": "Multi-course dinner in a host's home, regional pours included." },
+  { "id": "food-michelin-tasting", "name": "Tasting menu at a recognised restaurant", "category": "food", "estimatedCost": 180, "estimatedDurationHours": 3, "description": "Reservation-only tasting menu at a critically lauded local kitchen." },
+  { "id": "food-coffee-crawl", "name": "Specialty coffee crawl", "category": "food", "estimatedCost": 20, "estimatedDurationHours": 3, "description": "Three to four roasters with the city's tightest pour-over and espresso." },
+  { "id": "food-night-market", "name": "Night-market dinner", "category": "food", "estimatedCost": 18, "estimatedDurationHours": 2, "description": "Stall-hop through the busiest evening food market." },
+  { "id": "food-wine-tasting", "name": "Vineyard or wine-bar tasting", "category": "food", "estimatedCost": 40, "estimatedDurationHours": 2.5, "description": "Five to six pours with the producer or a sommelier." },
+
+  { "id": "sights-old-town-walk", "name": "Old-town walking tour", "category": "sightseeing", "estimatedCost": 0, "estimatedDurationHours": 2, "description": "Self-guided loop through the historic center, ending at the main square." },
+  { "id": "sights-iconic-landmark", "name": "Iconic landmark visit", "category": "sightseeing", "estimatedCost": 25, "estimatedDurationHours": 2, "description": "The recognisable city symbol — tower, plaza, palace, or castle." },
+  { "id": "sights-rooftop-view", "name": "Rooftop or viewpoint sunset", "category": "sightseeing", "estimatedCost": 12, "estimatedDurationHours": 1.5, "description": "A high vantage point timed for golden hour." },
+  { "id": "sights-architecture-walk", "name": "Architecture-focused walk", "category": "sightseeing", "estimatedCost": 0, "estimatedDurationHours": 2.5, "description": "Notable buildings across two or three eras of the city." },
+  { "id": "sights-river-cruise", "name": "Short river or harbour cruise", "category": "sightseeing", "estimatedCost": 30, "estimatedDurationHours": 1.5, "description": "Hop-on boat through the city's water arteries." },
+  { "id": "sights-day-trip", "name": "Day trip to a nearby town", "category": "sightseeing", "estimatedCost": 50, "estimatedDurationHours": 8, "description": "Train or bus to a noteworthy town within an hour or two." },
+
+  { "id": "adv-hike", "name": "Half-day hike", "category": "adventure", "estimatedCost": 0, "estimatedDurationHours": 4, "description": "Trail run or hike near the city — viewpoints, light technical sections." },
+  { "id": "adv-cycling", "name": "City or coast cycling", "category": "adventure", "estimatedCost": 25, "estimatedDurationHours": 3, "description": "Rented bike along a cycle network or coastal route." },
+  { "id": "adv-kayak", "name": "Kayak or paddleboard", "category": "adventure", "estimatedCost": 35, "estimatedDurationHours": 2, "description": "On the water — bay, lake, or calm river." },
+  { "id": "adv-surf", "name": "Surf lesson", "category": "adventure", "estimatedCost": 50, "estimatedDurationHours": 2, "description": "Beginner board, wetsuit, two hours with a coach." },
+  { "id": "adv-dive", "name": "Guided dive", "category": "adventure", "estimatedCost": 90, "estimatedDurationHours": 4, "description": "Two-tank dive, equipment, boat transfer." },
+  { "id": "adv-rock", "name": "Rock-climbing session", "category": "adventure", "estimatedCost": 70, "estimatedDurationHours": 4, "description": "Outdoor sport climbing or bouldering with a guide." },
+  { "id": "adv-paragliding", "name": "Tandem paragliding", "category": "adventure", "estimatedCost": 120, "estimatedDurationHours": 2, "description": "Tandem flight from a local launch site." },
+  { "id": "adv-overnight-trek", "name": "Overnight trek", "category": "adventure", "estimatedCost": 180, "estimatedDurationHours": 24, "description": "Two-day trek with hut or camp stay." },
+
+  { "id": "cult-museum", "name": "Major museum visit", "category": "culture", "estimatedCost": 20, "estimatedDurationHours": 3, "description": "The city's flagship art, history, or design museum." },
+  { "id": "cult-secondary-museum", "name": "Niche or contemporary museum", "category": "culture", "estimatedCost": 15, "estimatedDurationHours": 2, "description": "Smaller, specialised museum — ceramics, textiles, photography." },
+  { "id": "cult-temple", "name": "Temple or religious site visit", "category": "culture", "estimatedCost": 5, "estimatedDurationHours": 1.5, "description": "Quiet, respectful visit to a major place of worship." },
+  { "id": "cult-historical-tour", "name": "Guided historical tour", "category": "culture", "estimatedCost": 35, "estimatedDurationHours": 3, "description": "Two to three hour walking tour with a local historian." },
+  { "id": "cult-traditional-performance", "name": "Traditional music or dance performance", "category": "culture", "estimatedCost": 40, "estimatedDurationHours": 2, "description": "Evening performance of a regional art form." },
+  { "id": "cult-craft-workshop", "name": "Craft or art workshop", "category": "culture", "estimatedCost": 55, "estimatedDurationHours": 3, "description": "Hands-on session — pottery, calligraphy, weaving, printing." },
+  { "id": "cult-archaeological", "name": "Archaeological site", "category": "culture", "estimatedCost": 18, "estimatedDurationHours": 3, "description": "Major ruins or heritage complex with optional guide." },
+
+  { "id": "relax-spa", "name": "Spa or hammam afternoon", "category": "relaxation", "estimatedCost": 70, "estimatedDurationHours": 2.5, "description": "Steam, scrub, massage in a calm setting." },
+  { "id": "relax-cafe-day", "name": "Slow cafe day", "category": "relaxation", "estimatedCost": 25, "estimatedDurationHours": 4, "description": "Two or three cafes with a book, no agenda." },
+  { "id": "relax-park", "name": "Park or garden afternoon", "category": "relaxation", "estimatedCost": 0, "estimatedDurationHours": 3, "description": "The city's main green space, slow pace." },
+  { "id": "relax-beach", "name": "Beach day", "category": "relaxation", "estimatedCost": 15, "estimatedDurationHours": 5, "description": "Public or city beach with a lunch break." },
+  { "id": "relax-onsen", "name": "Bath or onsen", "category": "relaxation", "estimatedCost": 30, "estimatedDurationHours": 2, "description": "Traditional bath house at the end of a busy day." },
+
+  { "id": "shop-local-market", "name": "Local artisans' market", "category": "shopping", "estimatedCost": 40, "estimatedDurationHours": 2, "description": "Weekly market with makers and small-batch goods." },
+  { "id": "shop-design-district", "name": "Design district browse", "category": "shopping", "estimatedCost": 60, "estimatedDurationHours": 3, "description": "Concept stores, independent boutiques, ceramics, textiles." },
+  { "id": "shop-bookshop", "name": "Independent bookshop crawl", "category": "shopping", "estimatedCost": 35, "estimatedDurationHours": 2, "description": "Two or three stores with strong English or local language sections." },
+  { "id": "shop-vintage", "name": "Vintage and antique browse", "category": "shopping", "estimatedCost": 45, "estimatedDurationHours": 3, "description": "Vintage clothing, furniture, or antique-market loop." },
+
+  { "id": "night-bar-crawl", "name": "Cocktail bar crawl", "category": "nightlife", "estimatedCost": 60, "estimatedDurationHours": 4, "description": "Three of the city's best modern cocktail bars." },
+  { "id": "night-live-music", "name": "Live music venue", "category": "nightlife", "estimatedCost": 35, "estimatedDurationHours": 3, "description": "Small or mid-size venue with the night's strongest line-up." },
+  { "id": "night-club", "name": "Late club night", "category": "nightlife", "estimatedCost": 40, "estimatedDurationHours": 4, "description": "Established club with the local DJ scene." },
+  { "id": "night-jazz", "name": "Jazz or speakeasy", "category": "nightlife", "estimatedCost": 45, "estimatedDurationHours": 3, "description": "Reservation-friendly room with intimate seating." },
+  { "id": "night-food-tour", "name": "Late-night food tour", "category": "nightlife", "estimatedCost": 55, "estimatedDurationHours": 3, "description": "Five food stops between 9pm and midnight." }
+]
